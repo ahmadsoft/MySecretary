@@ -29,7 +29,7 @@ class _EventFormState extends ConsumerState<EventForm> {
   late int? _reminder = widget.event == null
       ? 30
       : widget.event!.reminderMinutes;
-  late int _color = widget.event?.color ?? AppTheme.palette[1].toARGB32();
+  late int _color = widget.event?.color ?? IosColors.blue.toARGB32();
 
   Future<void> _save() async {
     if (_title.text.trim().isEmpty) {
@@ -66,138 +66,144 @@ class _EventFormState extends ConsumerState<EventForm> {
   @override
   Widget build(BuildContext context) {
     final editing = widget.event != null;
+    final tint = Ios.tint(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(editing ? 'تعديل موعد' : 'موعد جديد'),
-        actions: [
-          if (editing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () async {
-                if (await confirmDialog(context, 'حذف هذا الموعد؟')) {
-                  await NotificationService.instance.cancelEvent(
-                    widget.event!.id!,
-                  );
-                  await eventRepo.delete(widget.event!.id!);
-                  ref.invalidate(eventsProvider);
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-            ),
-        ],
+        actions: [NavTextButton(editing ? 'تم' : 'إضافة', onPressed: _save)],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(top: 12, bottom: 32),
         children: [
-          TextField(
-            controller: _title,
-            autofocus: !editing,
-            decoration: const InputDecoration(
-              labelText: 'عنوان الموعد',
-              prefixIcon: Icon(Icons.event),
-            ),
+          IosSection(
+            children: [
+              IosField(_title, 'العنوان', autofocus: !editing),
+              IosField(_location, 'الموقع'),
+            ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _location,
-            decoration: const InputDecoration(
-              labelText: 'المكان',
-              prefixIcon: Icon(Icons.place),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Column(
-              children: [
-                SwitchListTile(
-                  title: const Text('طوال اليوم'),
-                  secondary: const Icon(Icons.wb_sunny_outlined),
+          IosSection(
+            children: [
+              IosTile(
+                title: 'طوال اليوم',
+                trailing: IosSwitch(
                   value: _allDay,
                   onChanged: (v) => setState(() => _allDay = v),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.play_arrow),
-                  title: const Text('البداية'),
-                  subtitle: Text(
-                    _allDay ? Fmt.date(_start) : Fmt.dateTime(_start),
-                  ),
+              ),
+              IosTile(
+                title: 'يبدأ',
+                trailing: _DateChip(
+                  _allDay ? Fmt.date(_start) : Fmt.dateTime(_start),
+                  tint,
+                ),
+                onTap: () async {
+                  final d = await pickDateTime(
+                    context,
+                    _start,
+                    withTime: !_allDay,
+                  );
+                  if (d != null) {
+                    setState(() {
+                      final dur = _end.difference(_start);
+                      _start = d;
+                      _end = d.add(
+                        dur.isNegative ? const Duration(hours: 1) : dur,
+                      );
+                    });
+                  }
+                },
+              ),
+              IosTile(
+                title: 'ينتهي',
+                trailing: _DateChip(
+                  _allDay ? Fmt.date(_end) : Fmt.dateTime(_end),
+                  tint,
+                ),
+                onTap: () async {
+                  final d = await pickDateTime(
+                    context,
+                    _end,
+                    withTime: !_allDay,
+                  );
+                  if (d != null) setState(() => _end = d);
+                },
+              ),
+            ],
+          ),
+          IosSection(
+            children: [
+              IosTile(
+                title: 'التنبيه',
+                value: reminderOptions[_reminder],
+                chevron: true,
+                onTap: () async {
+                  final keys = [for (final k in reminderOptions.keys) k ?? -1];
+                  final v = await pickFromList<int>(
+                    context,
+                    items: keys,
+                    initial: _reminder ?? -1,
+                    label: (k) => reminderOptions[k == -1 ? null : k]!,
+                  );
+                  if (v != null) setState(() => _reminder = v == -1 ? null : v);
+                },
+              ),
+            ],
+          ),
+          IosSection(
+            header: 'اللون',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: ColorPicker(
+                  selected: _color,
+                  onChanged: (v) => setState(() => _color = v),
+                ),
+              ),
+            ],
+          ),
+          IosSection(children: [IosField(_notes, 'ملاحظات', maxLines: 5)]),
+          if (editing)
+            IosSection(
+              children: [
+                IosTile(
+                  title: 'حذف الموعد',
+                  titleColor: IosColors.red,
                   onTap: () async {
-                    final d = await pickDateTime(
-                      context,
-                      _start,
-                      withTime: !_allDay,
-                    );
-                    if (d != null) {
-                      setState(() {
-                        final dur = _end.difference(_start);
-                        _start = d;
-                        _end = d.add(
-                          dur.isNegative ? const Duration(hours: 1) : dur,
-                        );
-                      });
+                    if (await confirmDialog(context, 'حذف هذا الموعد؟')) {
+                      await NotificationService.instance.cancelEvent(
+                        widget.event!.id!,
+                      );
+                      await eventRepo.delete(widget.event!.id!);
+                      ref.invalidate(eventsProvider);
+                      if (context.mounted) Navigator.pop(context);
                     }
                   },
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.stop),
-                  title: const Text('النهاية'),
-                  subtitle: Text(_allDay ? Fmt.date(_end) : Fmt.dateTime(_end)),
-                  onTap: () async {
-                    final d = await pickDateTime(
-                      context,
-                      _end,
-                      withTime: !_allDay,
-                    );
-                    if (d != null) setState(() => _end = d);
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.notifications),
-                  title: const Text('التذكير'),
-                  trailing: DropdownButton<int?>(
-                    value: _reminder,
-                    underline: const SizedBox(),
-                    items: [
-                      for (final e in reminderOptions.entries)
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
-                    ],
-                    onChanged: (v) => setState(() => _reminder = v),
-                  ),
-                ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _notes,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'ملاحظات',
-              prefixIcon: Icon(Icons.notes),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ColorPicker(
-            selected: _color,
-            onChanged: (v) => setState(() => _color = v),
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.check),
-            label: const Text('حفظ'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
-          ),
         ],
       ),
     );
   }
+}
+
+class _DateChip extends StatelessWidget {
+  final String text;
+  final Color tint;
+  const _DateChip(this.text, this.tint);
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: Ios.fill(context),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(fontSize: 15, color: Ios.label(context)),
+    ),
+  );
 }
 
 class ColorPicker extends StatelessWidget {
@@ -211,18 +217,26 @@ class ColorPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Wrap(
-    spacing: 10,
-    runSpacing: 10,
+    spacing: 12,
+    runSpacing: 12,
     children: [
       for (final c in AppTheme.palette)
         GestureDetector(
           onTap: () => onChanged(c.toARGB32()),
-          child: CircleAvatar(
-            radius: 18,
-            backgroundColor: c,
-            child: c.toARGB32() == selected
-                ? const Icon(Icons.check, color: Colors.white, size: 18)
-                : null,
+          child: Container(
+            width: 34,
+            height: 34,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: c.toARGB32() == selected ? c : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+            ),
           ),
         ),
     ],

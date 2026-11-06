@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -77,76 +79,83 @@ class _EntryFormState extends ConsumerState<EntryForm> {
     final heirs = d?.summary.heirs ?? const [];
     final editing = widget.entry != null;
     final cats = {...estateExpenseCategories, _category}.toList();
+    final source = sources.where((s) => s.id == _sourceId).firstOrNull;
+    final heir = heirs.where((h) => h.heir.id == _heirId).firstOrNull;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(editing ? 'تعديل حركة' : 'حركة جديدة'),
-        actions: [
-          if (editing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () async {
-                if (await confirmDialog(context, 'حذف هذه الحركة؟')) {
-                  await estateRepo.deleteEntry(widget.entry!.id!);
-                  refreshEstate(ref, widget.estateId);
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-            ),
-        ],
+        actions: [NavTextButton(editing ? 'تم' : 'إضافة', onPressed: _save)],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(top: 8, bottom: 32),
         children: [
-          SegmentedButton<EntryKind>(
-            segments: [
-              for (final k in EntryKind.values)
-                ButtonSegment(value: k, label: Text(entryKindLabels[k]!)),
-            ],
-            selected: {_kind},
-            onSelectionChanged: (s) => setState(() => _kind = s.first),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _amount,
-            autofocus: !editing,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            decoration: const InputDecoration(
-              labelText: 'المبلغ',
-              suffixText: 'ر.س',
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: IosSegmented<EntryKind>(
+              items: entryKindLabels,
+              value: _kind,
+              onChanged: (k) => setState(() => _kind = k),
             ),
           ),
-          const SizedBox(height: 16),
-          if (_kind == EntryKind.income) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: sources.any((s) => s.id == _sourceId)
-                        ? _sourceId
-                        : null,
-                    decoration: const InputDecoration(
-                      labelText: 'مصدر الإيراد (من أين؟)',
-                      prefixIcon: Icon(Icons.apartment),
-                    ),
-                    items: [
-                      for (final s in sources)
-                        DropdownMenuItem(
-                          value: s.id,
-                          child: Text(
-                            '${s.name} (${s.type})',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                    onChanged: (v) => setState(() => _sourceId = v),
-                  ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 18),
+            child: TextField(
+              controller: _amount,
+              autofocus: !editing,
+              textAlign: TextAlign.center,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: TextStyle(
+                fontSize: 44,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -1,
+                color: _kind == EntryKind.income
+                    ? IosColors.green
+                    : Ios.label(context),
+              ),
+              decoration: InputDecoration(
+                hintText: '0.00',
+                filled: false,
+                suffixText: 'ر.س',
+                suffixStyle: TextStyle(
+                  fontSize: 20,
+                  color: Ios.secondary(context),
                 ),
-                IconButton.filledTonal(
-                  tooltip: 'مصدر جديد',
-                  icon: const Icon(Icons.add),
-                  onPressed: () async {
+              ),
+            ),
+          ),
+          if (_kind == EntryKind.income)
+            IosSection(
+              header: 'من أين؟',
+              footer: sources.isEmpty ? 'أضف مصدر الإيراد أولاً.' : null,
+              dividerIndent: 60,
+              children: [
+                if (sources.isNotEmpty)
+                  IosTile(
+                    leading: const IconBadge(
+                      CupertinoIcons.building_2_fill,
+                      IosColors.teal,
+                    ),
+                    title: 'مصدر الإيراد',
+                    value: source?.name ?? 'اختر',
+                    chevron: true,
+                    onTap: () async {
+                      final v = await pickFromList<IncomeSource>(
+                        context,
+                        items: sources,
+                        initial: source ?? sources.first,
+                        label: (s) => '${s.name} (${s.type})',
+                      );
+                      if (v != null) setState(() => _sourceId = v.id);
+                    },
+                  ),
+                IosTile(
+                  leading: const IconBadge(CupertinoIcons.add, IosColors.blue),
+                  title: 'مصدر جديد...',
+                  titleColor: Ios.tint(context),
+                  onTap: () async {
                     final id = await editSource(
                       context,
                       ref,
@@ -158,80 +167,79 @@ class _EntryFormState extends ConsumerState<EntryForm> {
                 ),
               ],
             ),
-            if (sources.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  'أضف مصدراً أولاً بالضغط على +',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
-          ],
           if (_kind == EntryKind.expense)
-            DropdownButtonFormField<String>(
-              initialValue: _category,
-              decoration: const InputDecoration(
-                labelText: 'بند المصروف',
-                prefixIcon: Icon(Icons.category),
-              ),
-              items: [
-                for (final c in cats)
-                  DropdownMenuItem(value: c, child: Text(c)),
+            IosSection(
+              children: [
+                IosTile(
+                  title: 'بند المصروف',
+                  value: _category,
+                  chevron: true,
+                  onTap: () async {
+                    final v = await pickFromList<String>(
+                      context,
+                      items: cats,
+                      initial: _category,
+                      label: (c) => c,
+                    );
+                    if (v != null) setState(() => _category = v);
+                  },
+                ),
               ],
-              onChanged: (v) => setState(() => _category = v!),
             ),
           if (_kind == EntryKind.distribution)
-            DropdownButtonFormField<int>(
-              initialValue: heirs.any((h) => h.heir.id == _heirId)
-                  ? _heirId
-                  : null,
-              decoration: const InputDecoration(
-                labelText: 'الوارث',
-                prefixIcon: Icon(Icons.person),
-              ),
-              items: [
-                for (final h in heirs)
-                  DropdownMenuItem(
-                    value: h.heir.id,
-                    child: Text(
-                      '${h.heir.name} — المتبقي ${Fmt.money(h.remaining)}',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+            IosSection(
+              footer: heir == null
+                  ? null
+                  : 'المتبقي لهذا الوارث: ${Fmt.money(heir.remaining)}',
+              children: [
+                IosTile(
+                  title: 'الوارث',
+                  value: heir?.heir.name ?? 'اختر',
+                  chevron: true,
+                  onTap: heirs.isEmpty
+                      ? null
+                      : () async {
+                          final v = await pickFromList(
+                            context,
+                            items: heirs,
+                            initial: heir ?? heirs.first,
+                            label: (h) => h.heir.name,
+                          );
+                          if (v != null) setState(() => _heirId = v.heir.id);
+                        },
+                ),
               ],
-              onChanged: (v) => setState(() => _heirId = v),
             ),
-          const SizedBox(height: 12),
-          Card(
-            margin: EdgeInsets.zero,
-            child: ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('التاريخ'),
-              subtitle: Text(Fmt.date(_date)),
-              onTap: () async {
-                final v = await pickDateTime(context, _date, withTime: false);
-                if (v != null) setState(() => _date = v);
-              },
-            ),
+          IosSection(
+            children: [
+              IosTile(
+                title: 'التاريخ',
+                value: Fmt.date(_date),
+                chevron: true,
+                onTap: () async {
+                  final v = await pickDateTime(context, _date, withTime: false);
+                  if (v != null) setState(() => _date = v);
+                },
+              ),
+              IosField(_note, 'البيان / ملاحظة', maxLines: 3),
+            ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _note,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'البيان / ملاحظة',
-              prefixIcon: Icon(Icons.notes),
+          if (editing)
+            IosSection(
+              children: [
+                IosTile(
+                  title: 'حذف الحركة',
+                  titleColor: IosColors.red,
+                  onTap: () async {
+                    if (await confirmDialog(context, 'حذف هذه الحركة؟')) {
+                      await estateRepo.deleteEntry(widget.entry!.id!);
+                      refreshEstate(ref, widget.estateId);
+                      if (context.mounted) Navigator.pop(context);
+                    }
+                  },
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.check),
-            label: const Text('حفظ'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
-          ),
         ],
       ),
     );

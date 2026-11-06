@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
 import '../../core/icons.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -57,158 +58,184 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     final cats = (ref.watch(categoriesProvider).value ?? const <Category>[])
         .where((c) => c.kind == _kind)
         .toList();
-    final c = Theme.of(context).colorScheme;
     final editing = widget.tx?.id != null;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(editing ? 'تعديل عملية' : 'عملية جديدة'),
-        actions: [
-          if (editing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () async {
-                if (await confirmDialog(context, 'حذف هذه العملية؟')) {
-                  await financeRepo.deleteTx(widget.tx!.id!);
-                  refreshFinance(ref);
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-            ),
-        ],
+        title: Text(editing ? 'تفاصيل العملية' : 'عملية جديدة'),
+        actions: [NavTextButton(editing ? 'تم' : 'إضافة', onPressed: _save)],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(top: 8, bottom: 32),
         children: [
-          SegmentedButton<TxKind>(
-            segments: const [
-              ButtonSegment(
-                value: TxKind.expense,
-                label: Text('مصروف'),
-                icon: Icon(Icons.arrow_upward),
-              ),
-              ButtonSegment(
-                value: TxKind.income,
-                label: Text('إيراد'),
-                icon: Icon(Icons.arrow_downward),
-              ),
-            ],
-            selected: {_kind},
-            onSelectionChanged: (s) => setState(() {
-              _kind = s.first;
-              _categoryId = null;
-            }),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _amount,
-            autofocus: !editing,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            decoration: const InputDecoration(
-              labelText: 'المبلغ',
-              suffixText: 'ر.س',
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: IosSegmented<TxKind>(
+              items: const {TxKind.expense: 'مصروف', TxKind.income: 'إيراد'},
+              value: _kind,
+              onChanged: (k) => setState(() {
+                _kind = k;
+                _categoryId = null;
+              }),
             ),
           ),
-          const SizedBox(height: 16),
-          const Text('التصنيف', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final cat in cats)
-                ChoiceChip(
-                  avatar: Icon(
-                    iconAt(cat.icon),
-                    size: 18,
-                    color: Color(cat.color),
-                  ),
-                  label: Text(cat.name),
-                  selected: _categoryId == cat.id,
-                  onSelected: (_) => setState(() => _categoryId = cat.id),
+          // المبلغ بخط كبير
+          Padding(
+            padding: const EdgeInsets.only(bottom: 18),
+            child: TextField(
+              controller: _amount,
+              autofocus: !editing,
+              textAlign: TextAlign.center,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: TextStyle(
+                fontSize: 44,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -1,
+                color: _kind == TxKind.income
+                    ? IosColors.green
+                    : Ios.label(context),
+              ),
+              decoration: InputDecoration(
+                hintText: '0.00',
+                filled: false,
+                suffixText: 'ر.س',
+                suffixStyle: TextStyle(
+                  fontSize: 20,
+                  color: Ios.secondary(context),
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _merchant,
-            decoration: InputDecoration(
-              labelText: _kind == TxKind.expense ? 'الجهة / المتجر' : 'المصدر',
-              prefixIcon: const Icon(Icons.storefront),
-              helperText: 'سيتذكر التطبيق تصنيف هذه الجهة للعمليات القادمة',
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Column(
+          IosSection(
+            header: 'التصنيف',
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 6,
+                ),
+                child: Wrap(
+                  alignment: WrapAlignment.start,
+                  runSpacing: 12,
+                  children: [
+                    for (final cat in cats)
+                      SizedBox(
+                        width: 82,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _categoryId = cat.id),
+                          child: Column(
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: _categoryId == cat.id
+                                        ? Color(cat.color)
+                                        : Colors.transparent,
+                                    width: 2.5,
+                                  ),
+                                ),
+                                child: IconBadge(
+                                  iconAt(cat.icon),
+                                  Color(cat.color),
+                                  size: 44,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                cat.name,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: _categoryId == cat.id
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: Ios.label(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          IosSection(
+            footer: 'سيتذكر التطبيق تصنيف هذه الجهة للعمليات القادمة.',
+            children: [
+              IosField(
+                _merchant,
+                _kind == TxKind.expense ? 'الجهة / المتجر' : 'المصدر',
+              ),
+              IosField(_note, 'ملاحظة'),
+            ],
+          ),
+          IosSection(
+            children: [
+              IosTile(
+                title: 'التاريخ',
+                value: Fmt.dateTime(_date),
+                chevron: true,
+                onTap: () async {
+                  final d = await pickDateTime(context, _date);
+                  if (d != null) setState(() => _date = d);
+                },
+              ),
+              IosTile(
+                title: 'طريقة الدفع',
+                value: paymentLabels[_method],
+                chevron: true,
+                onTap: () async {
+                  final v = await pickFromList<PaymentMethod>(
+                    context,
+                    items: PaymentMethod.values,
+                    initial: _method,
+                    label: (m) => paymentLabels[m]!,
+                  );
+                  if (v != null) setState(() => _method = v);
+                },
+              ),
+            ],
+          ),
+          if (widget.tx?.rawSms != null)
+            IosSection(
+              header: 'نص الرسالة الأصلية',
               children: [
-                ListTile(
-                  leading: const Icon(Icons.calendar_today),
-                  title: const Text('التاريخ'),
-                  subtitle: Text(Fmt.dateTime(_date)),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: SelectableText(
+                    widget.tx!.rawSms!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Ios.secondary(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          if (editing)
+            IosSection(
+              children: [
+                IosTile(
+                  title: 'حذف العملية',
+                  titleColor: IosColors.red,
                   onTap: () async {
-                    final d = await pickDateTime(context, _date);
-                    if (d != null) setState(() => _date = d);
+                    if (await confirmDialog(context, 'حذف هذه العملية؟')) {
+                      await financeRepo.deleteTx(widget.tx!.id!);
+                      refreshFinance(ref);
+                      if (context.mounted) Navigator.pop(context);
+                    }
                   },
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.credit_card),
-                  title: const Text('طريقة الدفع'),
-                  trailing: DropdownButton<PaymentMethod>(
-                    value: _method,
-                    underline: const SizedBox(),
-                    items: [
-                      for (final e in paymentLabels.entries)
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
-                    ],
-                    onChanged: (v) => setState(() => _method = v!),
-                  ),
-                ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _note,
-            decoration: const InputDecoration(
-              labelText: 'ملاحظة',
-              prefixIcon: Icon(Icons.notes),
-            ),
-          ),
-          if (widget.tx?.rawSms != null) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.sms, size: 18, color: c.outline),
-                const SizedBox(width: 6),
-                Text('نص الرسالة الأصلية', style: TextStyle(color: c.outline)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: c.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SelectableText(
-                widget.tx!.rawSms!,
-                style: const TextStyle(fontSize: 13),
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.check),
-            label: const Text('حفظ'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
-          ),
         ],
       ),
     );

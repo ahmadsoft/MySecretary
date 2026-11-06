@@ -1,13 +1,15 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
-import '../tasks/tasks_screen.dart' show showSearchDialog;
 import 'note_editor.dart';
 
+/// الملاحظات بطابع تطبيق الملاحظات في iPhone.
 class NotesScreen extends ConsumerStatefulWidget {
   const NotesScreen({super.key});
 
@@ -16,6 +18,7 @@ class NotesScreen extends ConsumerStatefulWidget {
 }
 
 class _NotesScreenState extends ConsumerState<NotesScreen> {
+  final _search = TextEditingController();
   String _q = '';
 
   @override
@@ -25,25 +28,16 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       appBar: AppBar(
         title: const Text('الملاحظات'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () async {
-              final q = await showSearchDialog(context, _q);
-              if (q != null) setState(() => _q = q);
-            },
+          NavIcon(
+            CupertinoIcons.square_pencil,
+            tooltip: 'ملاحظة جديدة',
+            onPressed: () =>
+                Navigator.push(context, iosRoute(const NoteEditor())),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: null,
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const NoteEditor()),
-        ),
-        child: const Icon(Icons.add),
-      ),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CupertinoActivityIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (notes) {
           final list = _q.isEmpty
@@ -53,22 +47,48 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                       (n) => n.title.contains(_q) || n.content.contains(_q),
                     )
                     .toList();
-          if (list.isEmpty) {
-            return const EmptyState(
-              icon: Icons.sticky_note_2_outlined,
-              message: 'لا توجد ملاحظات',
-            );
-          }
-          return GridView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 220,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.9,
-            ),
-            itemCount: list.length,
-            itemBuilder: (_, i) => _NoteCard(note: list[i]),
+          final pinned = list.where((n) => n.pinned).toList();
+          final others = list.where((n) => !n.pinned).toList();
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+                child: CupertinoSearchTextField(
+                  controller: _search,
+                  placeholder: 'بحث',
+                  onChanged: (v) => setState(() => _q = v.trim()),
+                ),
+              ),
+              if (list.isEmpty)
+                const SizedBox(
+                  height: 300,
+                  child: EmptyState(
+                    icon: CupertinoIcons.doc_text,
+                    message: 'لا توجد ملاحظات',
+                  ),
+                ),
+              if (pinned.isNotEmpty)
+                IosSection(
+                  header: 'مثبّتة',
+                  children: [for (final n in pinned) _NoteRow(note: n)],
+                ),
+              if (others.isNotEmpty)
+                IosSection(
+                  header: pinned.isEmpty ? null : 'الملاحظات',
+                  children: [for (final n in others) _NoteRow(note: n)],
+                ),
+              if (list.isNotEmpty)
+                Center(
+                  child: Text(
+                    '${list.length} ملاحظات',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Ios.secondary(context),
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -76,61 +96,67 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 }
 
-class _NoteCard extends StatelessWidget {
+class _NoteRow extends StatelessWidget {
   final Note note;
-  const _NoteCard({required this.note});
+  const _NoteRow({required this.note});
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(note.color);
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final preview = note.content.replaceAll('\n', ' ');
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => NoteEditor(note: note)),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: dark ? 0.30 : 0.15),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.5)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: () => Navigator.push(context, iosRoute(NoteEditor(note: note))),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
+            Container(
+              width: 4,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Color(note.color),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
                     note.title.isEmpty ? 'بدون عنوان' : note.title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Ios.label(context),
                     ),
                   ),
-                ),
-                if (note.pinned) Icon(Icons.push_pin, size: 16, color: color),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: Text(
-                note.content,
-                overflow: TextOverflow.fade,
-                style: const TextStyle(fontSize: 13),
+                  const SizedBox(height: 2),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${Fmt.shortDate(note.updatedAt)}  ',
+                          style: TextStyle(color: Ios.label(context)),
+                        ),
+                        TextSpan(
+                          text: preview.isEmpty ? 'لا يوجد نص إضافي' : preview,
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Ios.secondary(context),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Text(
-              Fmt.shortDate(note.updatedAt),
-              style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-            ),
+            if (note.pinned)
+              Icon(CupertinoIcons.pin_fill, size: 14, color: IosColors.orange),
           ],
         ),
       ),

@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -19,13 +21,13 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
-    final c = Theme.of(context).colorScheme;
     final tasks = (ref.watch(tasksProvider).value ?? const <Task>[])
         .where((t) => t.parentId == null)
         .toList();
     final events = ref.watch(eventsProvider).value ?? const <Event>[];
-    final month = DateTime(now.year, now.month);
-    final txs = ref.watch(monthTxProvider(month)).value ?? const <Tx>[];
+    final txs =
+        ref.watch(monthTxProvider(DateTime(now.year, now.month))).value ??
+        const <Tx>[];
 
     final todayAll = tasks.where(
       (t) => t.dueAt != null && Fmt.sameDay(t.dueAt!, now),
@@ -46,12 +48,12 @@ class DashboardScreen extends ConsumerWidget {
         .where((t) => t.kind == TxKind.expense && Fmt.sameDay(t.date, now))
         .fold(0.0, (s, t) => s + t.amount);
 
-    void push(Widget w) =>
-        Navigator.push(context, MaterialPageRoute(builder: (_) => w));
+    void push(Widget w) => Navigator.push(context, iosRoute(w));
 
     return Scaffold(
       body: SafeArea(
-        child: RefreshIndicator(
+        bottom: false,
+        child: RefreshIndicator.adaptive(
           onRefresh: () async {
             ref.invalidate(tasksProvider);
             ref.invalidate(eventsProvider);
@@ -61,190 +63,156 @@ class DashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: 24),
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${Fmt.greeting(now)} 👋',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      '${Fmt.weekday(now)}، ${Fmt.date(now)}'.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Ios.secondary(context),
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      '${Fmt.weekday(now)}، ${Fmt.date(now)}',
-                      style: TextStyle(color: c.outline),
+                      Fmt.greeting(now),
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        color: Ios.label(context),
+                      ),
                     ),
                   ],
                 ),
               ),
-              // بطاقة الإنجاز
-              Card(
-                color: c.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 64,
-                        height: 64,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 64,
-                              height: 64,
-                              child: CircularProgressIndicator(
-                                value: todayTotal == 0
-                                    ? 0
-                                    : todayDone / todayTotal,
-                                strokeWidth: 7,
-                                backgroundColor: c.onPrimaryContainer
-                                    .withValues(alpha: 0.15),
-                                color: c.primary,
-                              ),
-                            ),
-                            Text(
-                              todayTotal == 0
-                                  ? '—'
-                                  : '${(todayDone / todayTotal * 100).round()}%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: c.onPrimaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'إنجاز اليوم',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: c.onPrimaryContainer,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              todayTotal == 0
-                                  ? 'لا توجد مهام مجدولة لليوم'
-                                  : 'أنجزت $todayDone من $todayTotal مهام',
-                              style: TextStyle(color: c.onPrimaryContainer),
-                            ),
-                            if (overdue.isNotEmpty)
-                              Text(
-                                '${overdue.length} مهام متأخرة',
-                                style: TextStyle(
-                                  color: c.error,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // اختصارات سريعة
+              // بطاقات ذكية بطابع تطبيق التذكيرات
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    _quick(
-                      context,
-                      Icons.add_task,
-                      'مهمة',
-                      () => push(const TaskForm()),
+                    Expanded(
+                      child: _SmartCard(
+                        icon: CupertinoIcons.calendar_today,
+                        color: IosColors.blue,
+                        title: 'مهام اليوم',
+                        value: todayTotal == 0 ? '0' : '$todayDone/$todayTotal',
+                        progress: todayTotal == 0
+                            ? null
+                            : todayDone / todayTotal,
+                        onTap: () => onNavigate(1),
+                      ),
                     ),
-                    _quick(
-                      context,
-                      Icons.event,
-                      'موعد',
-                      () => push(const EventForm()),
-                    ),
-                    _quick(
-                      context,
-                      Icons.note_add,
-                      'ملاحظة',
-                      () => push(const NoteEditor()),
-                    ),
-                    _quick(
-                      context,
-                      Icons.add_card,
-                      'مصروف',
-                      () => push(const TransactionForm()),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SmartCard(
+                        icon: CupertinoIcons.exclamationmark_circle_fill,
+                        color: overdue.isEmpty ? IosColors.gray : IosColors.red,
+                        title: 'متأخرة',
+                        value: '${overdue.length}',
+                        onTap: () => onNavigate(1),
+                      ),
                     ),
                   ],
                 ),
               ),
-              SectionTitle(
-                'مواعيد اليوم',
-                trailing: TextButton(
-                  onPressed: () => onNavigate(2),
-                  child: const Text('التقويم'),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _SmartCard(
+                        icon: CupertinoIcons.calendar,
+                        color: IosColors.red,
+                        title: 'مواعيد اليوم',
+                        value: '${todayEvents.length}',
+                        onTap: () => onNavigate(2),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SmartCard(
+                        icon: CupertinoIcons.creditcard_fill,
+                        color: IosColors.green,
+                        title: 'مصروف اليوم',
+                        value: Fmt.money(todayExpense),
+                        small: true,
+                        onTap: () => onNavigate(3),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              if (todayEvents.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    'لا توجد مواعيد اليوم',
-                    style: TextStyle(color: c.outline),
-                  ),
-                ),
-              for (final e in todayEvents) EventTile(event: e),
-              SectionTitle(
-                'مهام اليوم',
-                trailing: TextButton(
-                  onPressed: () => onNavigate(1),
-                  child: const Text('كل المهام'),
-                ),
-              ),
-              if (todayOpen.isEmpty && overdue.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    'لا توجد مهام متبقية لليوم 🎉',
-                    style: TextStyle(color: c.outline),
-                  ),
-                ),
-              for (final t in overdue) TaskTile(task: t),
-              for (final t in todayOpen) TaskTile(task: t),
-              SectionTitle(
-                'المصاريف',
-                trailing: TextButton(
-                  onPressed: () => onNavigate(3),
-                  child: const Text('التفاصيل'),
-                ),
-              ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
+              const SizedBox(height: 22),
+              IosSection(
+                header: 'إضافة سريعة',
+                dividerIndent: 60,
+                children: [
+                  Row(
                     children: [
-                      Expanded(child: _stat(context, 'اليوم', todayExpense)),
-                      Container(width: 1, height: 36, color: c.outlineVariant),
-                      Expanded(
-                        child: _stat(context, 'هذا الشهر', monthExpense),
+                      _quick(
+                        context,
+                        CupertinoIcons.checkmark_circle_fill,
+                        IosColors.blue,
+                        'مهمة',
+                        () => push(const TaskForm()),
+                      ),
+                      _quick(
+                        context,
+                        CupertinoIcons.calendar_badge_plus,
+                        IosColors.red,
+                        'موعد',
+                        () => push(const EventForm()),
+                      ),
+                      _quick(
+                        context,
+                        CupertinoIcons.doc_text_fill,
+                        IosColors.yellow,
+                        'ملاحظة',
+                        () => push(const NoteEditor()),
+                      ),
+                      _quick(
+                        context,
+                        CupertinoIcons.creditcard_fill,
+                        IosColors.green,
+                        'مصروف',
+                        () => push(const TransactionForm()),
                       ),
                     ],
                   ),
+                ],
+              ),
+              if (todayEvents.isNotEmpty)
+                IosSection(
+                  header: 'مواعيد اليوم',
+                  headerTrailing: _link(
+                    context,
+                    'التقويم',
+                    () => onNavigate(2),
+                  ),
+                  children: [for (final e in todayEvents) EventTile(event: e)],
                 ),
+              IosSection(
+                header: 'مهام اليوم',
+                headerTrailing: _link(context, 'الكل', () => onNavigate(1)),
+                dividerIndent: 52,
+                children: overdue.isEmpty && todayOpen.isEmpty
+                    ? [const IosTile(title: 'لا توجد مهام متبقية لليوم 🎉')]
+                    : [
+                        for (final t in overdue) TaskTile(task: t),
+                        for (final t in todayOpen) TaskTile(task: t),
+                      ],
+              ),
+              IosSection(
+                header: 'المصاريف',
+                headerTrailing: _link(context, 'التفاصيل', () => onNavigate(3)),
+                children: [
+                  IosTile(title: 'اليوم', value: Fmt.money(todayExpense)),
+                  IosTile(title: 'هذا الشهر', value: Fmt.money(monthExpense)),
+                ],
               ),
             ],
           ),
@@ -252,53 +220,120 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _link(BuildContext context, String t, VoidCallback onTap) =>
+      CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: const Size(0, 0),
+        onPressed: onTap,
+        child: Text(t, style: const TextStyle(fontSize: 15)),
+      );
 
   Widget _quick(
     BuildContext context,
     IconData i,
+    Color color,
     String label,
     VoidCallback onTap,
-  ) {
-    final c = Theme.of(context).colorScheme;
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: c.secondaryContainer,
-                child: Icon(i, color: c.onSecondaryContainer),
-              ),
-              const SizedBox(height: 6),
-              Text(label, style: const TextStyle(fontSize: 13)),
-            ],
-          ),
+  ) => Expanded(
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Column(
+          children: [
+            IconBadge(i, color, size: 44),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(fontSize: 13, color: Ios.label(context)),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _stat(BuildContext context, String label, double v) => Column(
-    children: [
-      Text(
-        label,
-        style: TextStyle(color: Theme.of(context).colorScheme.outline),
-      ),
-      const SizedBox(height: 4),
-      FittedBox(
-        child: Text(
-          Fmt.money(v),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-            color: Color(0xFFC0392B),
-          ),
+/// بطاقة مثل "اليوم/المجدولة" في تطبيق التذكيرات.
+class _SmartCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String value;
+  final double? progress;
+  final bool small;
+  final VoidCallback onTap;
+  const _SmartCard({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.value,
+    required this.onTap,
+    this.progress,
+    this.small = false,
+  });
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Ios.cell(context),
+    borderRadius: BorderRadius.circular(14),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 18),
+                ),
+                const Spacer(),
+                Flexible(
+                  flex: 4,
+                  child: FittedBox(
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: small ? 20 : 26,
+                        fontWeight: FontWeight.w700,
+                        color: Ios.label(context),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Ios.secondary(context),
+              ),
+            ),
+            if (progress != null) ...[
+              const SizedBox(height: 6),
+              LinearProgressIndicator(
+                value: progress,
+                color: color,
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ],
+          ],
         ),
       ),
-    ],
+    ),
   );
 }

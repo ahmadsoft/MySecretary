@@ -1,8 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
-import '../core/icons.dart';
 import 'models.dart';
 
 /// قاعدة البيانات المحلية (SQLite). جميع البيانات تبقى على الجهاز.
@@ -91,60 +89,27 @@ class AppDb {
 
   static Future<void> _seed(Database db) async {
     final cats = [
-      Category(
-        name: 'طعام ومطاعم',
-        icon: iconIndex(Icons.restaurant),
-        color: 0xFFE67E22,
-      ),
-      Category(
-        name: 'بقالة',
-        icon: iconIndex(Icons.local_grocery_store),
-        color: 0xFF16A085,
-      ),
-      Category(
-        name: 'مواصلات ووقود',
-        icon: iconIndex(Icons.local_gas_station),
-        color: 0xFF2E86DE,
-      ),
-      Category(
-        name: 'فواتير',
-        icon: iconIndex(Icons.receipt_long),
-        color: 0xFF8E44AD,
-      ),
-      Category(
-        name: 'تسوق',
-        icon: iconIndex(Icons.shopping_bag),
-        color: 0xFFC0392B,
-      ),
-      Category(
-        name: 'صحة',
-        icon: iconIndex(Icons.local_hospital),
-        color: 0xFF1ABC9C,
-      ),
-      Category(name: 'ترفيه', icon: iconIndex(Icons.movie), color: 0xFFD4AC0D),
-      Category(name: 'تعليم', icon: iconIndex(Icons.school), color: 0xFF34495E),
-      Category(name: 'سحب نقدي', icon: iconIndex(Icons.atm), color: 0xFF7F8C8D),
-      Category(
-        name: 'أخرى',
-        icon: iconIndex(Icons.category),
-        color: 0xFF95A5A6,
-      ),
-      Category(
-        name: 'راتب',
-        icon: iconIndex(Icons.payments),
-        color: 0xFF1E6F5C,
-        kind: TxKind.income,
-      ),
+      Category(name: 'طعام ومطاعم', icon: 0, color: 0xFFFF9500),
+      Category(name: 'بقالة', icon: 1, color: 0xFF34C759),
+      Category(name: 'مواصلات ووقود', icon: 2, color: 0xFF007AFF),
+      Category(name: 'فواتير', icon: 3, color: 0xFF5856D6),
+      Category(name: 'تسوق', icon: 4, color: 0xFFFF2D55),
+      Category(name: 'صحة', icon: 5, color: 0xFFFF3B30),
+      Category(name: 'ترفيه', icon: 6, color: 0xFFAF52DE),
+      Category(name: 'تعليم', icon: 7, color: 0xFF30B0C7),
+      Category(name: 'سحب نقدي', icon: 8, color: 0xFF8E8E93),
+      Category(name: 'أخرى', icon: 9, color: 0xFFA2845E),
+      Category(name: 'راتب', icon: 10, color: 0xFF34C759, kind: TxKind.income),
       Category(
         name: 'تحويل وارد',
-        icon: iconIndex(Icons.call_received),
-        color: 0xFF27AE60,
+        icon: 11,
+        color: 0xFF00C7BE,
         kind: TxKind.income,
       ),
       Category(
         name: 'دخل آخر',
-        icon: iconIndex(Icons.savings),
-        color: 0xFF2ECC71,
+        icon: 12,
+        color: 0xFF32ADE6,
         kind: TxKind.income,
       ),
     ];

@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -14,58 +16,69 @@ class EstatesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(estatesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('حسابات الورثة')),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
-        onPressed: () => editEstate(context, ref, null),
-        icon: const Icon(Icons.add),
-        label: const Text('حساب تركة جديد'),
+      appBar: AppBar(
+        title: const Text('حسابات الورثة'),
+        actions: [
+          NavIcon(
+            CupertinoIcons.add,
+            tooltip: 'حساب جديد',
+            onPressed: () => editEstate(context, ref, null),
+          ),
+        ],
       ),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CupertinoActivityIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (list) => list.isEmpty
-            ? const EmptyState(
-                icon: Icons.family_restroom,
-                message: 'أنشئ حساباً للتركة لتسجيل الإيرادات والمصروفات وتوزيع أنصبة الورثة',
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const EmptyState(
+                    icon: CupertinoIcons.person_3,
+                    message: 'أنشئ حساباً للتركة لتسجيل الإيرادات والمصروفات وتوزيع أنصبة الورثة',
+                  ),
+                  CupertinoButton.filled(
+                    onPressed: () => editEstate(context, ref, null),
+                    child: const Text('إنشاء حساب'),
+                  ),
+                ],
               )
             : ListView(
-                padding: const EdgeInsets.only(top: 8, bottom: 88),
-                children: [for (final e in list) _EstateCard(estate: e)],
+                padding: const EdgeInsets.only(top: 12),
+                children: [
+                  IosSection(
+                    dividerIndent: 70,
+                    children: [for (final e in list) _EstateRow(estate: e)],
+                  ),
+                ],
               ),
       ),
     );
   }
 }
 
-class _EstateCard extends ConsumerWidget {
+class _EstateRow extends ConsumerWidget {
   final Estate estate;
-  const _EstateCard({required this.estate});
+  const _EstateRow({required this.estate});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(estateDataProvider(estate.id!)).value;
-    final s = data?.summary;
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: const CircleAvatar(child: Icon(Icons.account_balance)),
-        title: Text(
-          estate.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: s == null
-            ? null
-            : Text(
-                '${data!.heirs.length} ورثة • الرصيد المتبقي: ${Fmt.money(s.cashBalance)}',
-              ),
-        trailing: const Icon(Icons.chevron_left),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => EstateDetailScreen(estateId: estate.id!),
-          ),
-        ),
+    return IosTile(
+      leading: const IconBadge(
+        CupertinoIcons.building_2_fill,
+        IosColors.indigo,
+        size: 40,
+      ),
+      title: estate.name,
+      bold: true,
+      subtitle: data == null
+          ? null
+          : '${data.heirs.length} ورثة · الرصيد ${Fmt.money(data.summary.cashBalance)}',
+      chevron: true,
+      onTap: () => Navigator.push(
+        context,
+        iosRoute(EstateDetailScreen(estateId: estate.id!)),
       ),
     );
   }
@@ -75,48 +88,32 @@ Future<void> editEstate(BuildContext context, WidgetRef ref, Estate? e) async {
   final name = TextEditingController(text: e?.name);
   final deceased = TextEditingController(text: e?.deceasedName);
   final notes = TextEditingController(text: e?.notes);
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(e == null ? 'حساب تركة جديد' : 'تعديل الحساب'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'اسم الحساب',
-                hintText: 'مثال: تركة الوالد',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: deceased,
-              decoration: const InputDecoration(
-                labelText: 'اسم المتوفى رحمه الله',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: notes,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: 'ملاحظات'),
-            ),
-          ],
-        ),
+  final ok = await showIosSheet<bool>(
+    context,
+    Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('إلغاء'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('حفظ'),
-        ),
-      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Builder(
+            builder: (ctx) => SheetHeader(
+              title: e == null ? 'حساب تركة جديد' : 'تعديل الحساب',
+              onSave: () => Navigator.pop(ctx, true),
+            ),
+          ),
+          const SizedBox(height: 8),
+          IosSection(
+            footer: 'مثال: تركة الوالد رحمه الله',
+            children: [
+              IosField(name, 'اسم الحساب', autofocus: true),
+              IosField(deceased, 'اسم المتوفى'),
+              IosField(notes, 'ملاحظات', maxLines: 3),
+            ],
+          ),
+        ],
+      ),
     ),
   );
   if (ok != true || name.text.trim().isEmpty) return;

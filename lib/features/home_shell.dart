@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/theme.dart';
 import '../data/providers.dart';
 import '../services/sms_service.dart';
 import 'calendar/calendar_screen.dart';
@@ -57,35 +59,42 @@ class _HomeShellState extends ConsumerState<HomeShell>
       const ExpensesScreen(),
       const MoreScreen(),
     ];
+    final c = Theme.of(context);
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: goTo,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+      bottomNavigationBar: CupertinoTabBar(
+        currentIndex: _index,
+        onTap: goTo,
+        activeColor: c.colorScheme.primary,
+        inactiveColor: IosColors.gray,
+        backgroundColor: c.brightness == Brightness.dark
+            ? const Color(0xF01C1C1E)
+            : const Color(0xF0F9F9F9),
+        height: 54,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.house),
+            activeIcon: Icon(CupertinoIcons.house_fill),
             label: 'اليوم',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.check_circle_outline),
-            selectedIcon: Icon(Icons.check_circle),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.checkmark_circle),
+            activeIcon: Icon(CupertinoIcons.checkmark_alt_circle_fill),
             label: 'المهام',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.calendar),
+            activeIcon: Icon(CupertinoIcons.calendar_today),
             label: 'التقويم',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.creditcard),
+            activeIcon: Icon(CupertinoIcons.creditcard_fill),
             label: 'المصاريف',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.square_grid_2x2),
+            activeIcon: Icon(CupertinoIcons.square_grid_2x2_fill),
             label: 'المزيد',
           ),
         ],

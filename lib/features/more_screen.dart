@@ -1,5 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../core/theme.dart';
+import '../core/widgets.dart';
 import 'estate/estates_screen.dart';
 import 'expenses/categories_screen.dart';
 import 'expenses/sms_settings_screen.dart';
@@ -11,50 +14,69 @@ class MoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget tile(IconData i, String t, String s, Widget page) => Card(
-      child: ListTile(
-        leading: CircleAvatar(child: Icon(i)),
-        title: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(s),
-        trailing: const Icon(Icons.chevron_left),
-        onTap: () =>
-            Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
-      ),
-    );
+    Widget tile(IconData i, Color c, String t, String s, Widget page) =>
+        IosTile(
+          leading: IconBadge(i, c),
+          title: t,
+          subtitle: s,
+          chevron: true,
+          onTap: () => Navigator.push(context, iosRoute(page)),
+        );
     return Scaffold(
-      appBar: AppBar(title: const Text('المزيد')),
+      appBar: largeTitleBar(context, 'المزيد'),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(top: 8),
         children: [
-          tile(
-            Icons.sticky_note_2,
-            'الملاحظات',
-            'ملاحظات سريعة ملونة',
-            const NotesScreen(),
+          IosSection(
+            dividerIndent: 60,
+            children: [
+              tile(
+                CupertinoIcons.doc_text_fill,
+                IosColors.yellow,
+                'الملاحظات',
+                'ملاحظات سريعة ملونة',
+                const NotesScreen(),
+              ),
+              tile(
+                CupertinoIcons.person_3_fill,
+                IosColors.indigo,
+                'حسابات الورثة',
+                'إيرادات ومصروفات التركة وأنصبة الورثة',
+                const EstatesScreen(),
+              ),
+            ],
           ),
-          tile(
-            Icons.family_restroom,
-            'حسابات الورثة',
-            'إيرادات ومصروفات التركة وأنصبة الورثة',
-            const EstatesScreen(),
+          IosSection(
+            header: 'المصاريف',
+            dividerIndent: 60,
+            children: [
+              tile(
+                CupertinoIcons.chat_bubble_text_fill,
+                IosColors.green,
+                'رسائل البنوك',
+                'التسجيل التلقائي للمصروفات من الرسائل',
+                const SmsSettingsScreen(),
+              ),
+              tile(
+                CupertinoIcons.square_grid_2x2_fill,
+                IosColors.orange,
+                'التصنيفات والميزانية',
+                'إدارة التصنيفات وحدود الصرف الشهرية',
+                const CategoriesScreen(),
+              ),
+            ],
           ),
-          tile(
-            Icons.sms,
-            'رسائل البنوك',
-            'التسجيل التلقائي للمصروفات من الرسائل',
-            const SmsSettingsScreen(),
-          ),
-          tile(
-            Icons.category,
-            'تصنيفات المصاريف والميزانية',
-            'إدارة التصنيفات وحدود الصرف الشهرية',
-            const CategoriesScreen(),
-          ),
-          tile(
-            Icons.settings,
-            'الإعدادات',
-            'المظهر وعن التطبيق',
-            const SettingsScreen(),
+          IosSection(
+            dividerIndent: 60,
+            children: [
+              tile(
+                CupertinoIcons.gear_solid,
+                IosColors.gray,
+                'الإعدادات',
+                'المظهر وعن التطبيق',
+                const SettingsScreen(),
+              ),
+            ],
           ),
         ],
       ),

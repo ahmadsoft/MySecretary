@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:my_secretary/data/db.dart';
 import 'package:my_secretary/data/models.dart';
 import 'package:my_secretary/data/repository.dart';
-import 'package:my_secretary/features/expenses/transaction_form.dart';
 import 'package:my_secretary/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -206,14 +206,22 @@ void main() {
     databaseFactory = databaseFactoryFfi;
     SharedPreferences.setMockInitialValues({});
     await initializeDateFormatting('ar');
-    if (shots) {
-      await _loadFont(
-        'Roboto',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-      );
+    // خطوط التطبيق الحقيقية (موجودة في المستودع) بدلاً من خط الاختبار الافتراضي
+    {
+      for (final w in ['400Regular', '500Medium', '600SemiBold', '700Bold']) {
+        await _loadFont('Inter', 'assets/fonts/Inter_$w.ttf');
+        await _loadFont(
+          'IBMPlexSansArabic',
+          'assets/fonts/IBMPlexSansArabic_$w.ttf',
+        );
+      }
       await _loadFont(
         'MaterialIcons',
         '${Platform.environment['FLUTTER_ROOT'] ?? '/opt/flutter'}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+      );
+      await _loadFont(
+        'packages/cupertino_icons/CupertinoIcons',
+        '${Platform.environment['HOME']}/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.9/assets/CupertinoIcons.ttf',
       );
     }
     AppDb.overridePath = inMemoryDatabasePath;
@@ -244,69 +252,90 @@ void main() {
       }
     }
 
+    final orig = FlutterError.onError;
+    FlutterError.onError = (d) {
+      // ignore: avoid_print
+      print(
+        'ERR ${d.exceptionAsString()} :: ${d.informationCollector?.call().take(1).join()}',
+      );
+      orig?.call(d);
+    };
     void back() =>
         tester.state<NavigatorState>(find.byType(Navigator).first).pop();
 
     await tester.pumpWidget(const ProviderScope(child: MySecretaryApp()));
     await settle();
-    expect(find.text('إنجاز اليوم'), findsOneWidget);
-    expect(find.text('مراجعة عقد الإيجار'), findsWidgets);
+    expect(find.text('مهام اليوم'), findsWidgets);
+    expect(
+      find.textContaining('مراجعة عقد الإيجار', findRichText: true),
+      findsWidgets,
+    );
     await shot('1_dashboard');
 
-    await tester.tap(find.text('المهام').last);
+    Future<void> tab(String label) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CupertinoTabBar),
+          matching: find.text(label),
+        ),
+      );
+      await settle();
+    }
+
+    await tab('المهام');
+    await tester.tap(find.text('الكل').first);
     await settle();
     await shot('2_tasks');
 
-    await tester.tap(find.text('التقويم').last);
-    await settle();
+    await tab('التقويم');
     await shot('3_calendar');
 
-    await tester.tap(find.text('المصاريف').last);
+    await tab('المصاريف');
+    await tester.scrollUntilVisible(
+      find.text('STARBUCKS'),
+      300,
+      scrollable: find.byType(Scrollable).hitTestable().first,
+    );
     await settle();
     expect(find.text('STARBUCKS'), findsOneWidget);
+    await tester.drag(
+      find.byType(Scrollable).hitTestable().first,
+      const Offset(0, 3000),
+    );
+    await settle();
     await shot('4_expenses');
 
     await tester.ensureVisible(find.text('STARBUCKS'));
     await settle();
     await tester.tap(find.text('STARBUCKS'));
     await settle();
-    expect(find.text('تعديل عملية'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('نص الرسالة الأصلية'),
-      200,
-      scrollable: find
-          .descendant(
-            of: find.byType(TransactionForm),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await settle();
+    expect(find.text('تفاصيل العملية'), findsOneWidget);
     await shot('5_transaction');
     back();
     await settle();
 
-    await tester.tap(find.text('المزيد').last);
-    await settle();
+    await tab('المزيد');
+    await shot('6_more');
     await tester.tap(find.text('حسابات الورثة'));
     await settle();
     await tester.tap(find.text('تركة الوالد'));
     await settle();
     expect(find.text('أنصبة الورثة'), findsOneWidget);
-    await shot('6_estate_summary');
+    await shot('7_estate_summary');
 
     await tester.tap(find.text('الحركات'));
     await settle();
-    await shot('7_estate_entries');
+    await shot('8_estate_entries');
 
     await tester.tap(find.text('الورثة').last);
     await settle();
-    await shot('8_estate_heirs');
+    await shot('9_estate_heirs');
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byTooltip('إضافة'));
     await settle();
     expect(find.text('إضافة وارث'), findsOneWidget);
-    back(); // إغلاق النافذة السفلية
+    await shot('10_heir_sheet');
+    back();
     await settle();
 
     back();
@@ -315,21 +344,20 @@ void main() {
     await settle();
     await tester.tap(find.text('الملاحظات'));
     await settle();
-    await shot('9_notes');
+    await shot('11_notes');
     back();
     await settle();
 
     await tester.tap(find.text('رسائل البنوك'));
     await settle();
-    await shot('10_sms_settings');
-
+    await shot('12_sms_settings');
     back();
     await settle();
-    await tester.tap(find.text('اليوم').last);
-    await settle();
+
+    await tab('اليوم');
     await tester.tap(find.text('مهمة'));
     await settle();
     expect(find.text('مهمة جديدة'), findsOneWidget);
-    await shot('11_task_form');
+    await shot('13_task_form');
   });
 }

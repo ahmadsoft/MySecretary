@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,7 +10,7 @@ import '../../data/providers.dart';
 
 /// خيارات التذكير بالنسبة لموعد الاستحقاق.
 const _reminderOffsets = <int?, String>{
-  null: 'بدون تذكير',
+  null: 'بدون',
   0: 'وقت الاستحقاق',
   15: 'قبل 15 دقيقة',
   60: 'قبل ساعة',
@@ -55,21 +56,23 @@ class _TaskFormState extends ConsumerState<TaskForm> {
         ? _due!.subtract(Duration(minutes: _reminder!))
         : null;
     final base = widget.task;
-    final t = Task(
-      id: base?.id,
-      title: title,
-      notes: _notes.text.trim(),
-      priority: _priority,
-      category: _category,
-      dueAt: _due,
-      reminderAt: reminderAt,
-      repeat: _due == null ? Repeat.none : _repeat,
-      done: base?.done ?? false,
-      doneAt: base?.doneAt,
-      parentId: base?.parentId,
-      createdAt: base?.createdAt,
+    await TaskActions.save(
+      ref,
+      Task(
+        id: base?.id,
+        title: title,
+        notes: _notes.text.trim(),
+        priority: _priority,
+        category: _category,
+        dueAt: _due,
+        reminderAt: reminderAt,
+        repeat: _due == null ? Repeat.none : _repeat,
+        done: base?.done ?? false,
+        doneAt: base?.doneAt,
+        parentId: base?.parentId,
+        createdAt: base?.createdAt,
+      ),
     );
-    await TaskActions.save(ref, t);
     if (mounted) Navigator.pop(context);
   }
 
@@ -85,7 +88,6 @@ class _TaskFormState extends ConsumerState<TaskForm> {
 
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme;
     final cats = {...defaultTaskCategories, _category}.toList();
     final subtasks = _editing
         ? (ref.watch(tasksProvider).value ?? const <Task>[])
@@ -95,101 +97,59 @@ class _TaskFormState extends ConsumerState<TaskForm> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_editing ? 'تعديل مهمة' : 'مهمة جديدة'),
-        actions: [
-          if (_editing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () async {
-                if (await confirmDialog(context, 'حذف هذه المهمة؟')) {
-                  await TaskActions.delete(ref, widget.task!);
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-            ),
-        ],
+        title: Text(_editing ? 'التفاصيل' : 'مهمة جديدة'),
+        actions: [NavTextButton(_editing ? 'تم' : 'إضافة', onPressed: _save)],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(top: 12, bottom: 32),
         children: [
-          TextField(
-            controller: _title,
-            autofocus: !_editing,
-            decoration: const InputDecoration(
-              labelText: 'عنوان المهمة',
-              prefixIcon: Icon(Icons.edit),
-            ),
+          IosSection(
+            children: [
+              IosField(_title, 'العنوان', autofocus: !_editing),
+              IosField(_notes, 'ملاحظات', maxLines: 5),
+            ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _notes,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'ملاحظات',
-              prefixIcon: Icon(Icons.notes),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('الأولوية', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SegmentedButton<int>(
-            segments: [
-              for (var i = 0; i < 3; i++)
-                ButtonSegment(
-                  value: i,
-                  label: FittedBox(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.flag,
-                          size: 18,
-                          color: AppTheme.priorityColors[i],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(priorityLabels[i]),
-                      ],
-                    ),
-                  ),
+          IosSection(
+            header: 'الأولوية',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: IosSegmented<int>(
+                  items: {for (var i = 0; i < 3; i++) i: priorityLabels[i]},
+                  value: _priority,
+                  onChanged: (v) => setState(() => _priority = v),
                 ),
+              ),
             ],
-            showSelectedIcon: false,
-            selected: {_priority},
-            onSelectionChanged: (s) => setState(() => _priority = s.first),
           ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: _category,
-            decoration: const InputDecoration(
-              labelText: 'التصنيف',
-              prefixIcon: Icon(Icons.label),
-            ),
-            items: [
-              for (final x in cats) DropdownMenuItem(value: x, child: Text(x)),
-            ],
-            onChanged: (v) => setState(() => _category = v!),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.event),
-                  title: const Text('موعد الاستحقاق'),
-                  subtitle: Text(
-                    _due == null ? 'بدون موعد' : Fmt.dateTime(_due!),
-                  ),
-                  trailing: _due == null
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => setState(() => _due = null),
+          IosSection(
+            dividerIndent: 60,
+            children: [
+              IosTile(
+                leading: const IconBadge(
+                  CupertinoIcons.calendar,
+                  IosColors.red,
+                ),
+                title: 'التاريخ والوقت',
+                subtitleWidget: _due == null
+                    ? null
+                    : Text(
+                        Fmt.dateTime(_due!),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Ios.tint(context),
                         ),
-                  onTap: () async {
+                      ),
+                trailing: IosSwitch(
+                  value: _due != null,
+                  onChanged: (v) async {
+                    if (!v) {
+                      setState(() => _due = null);
+                      return;
+                    }
                     final d = await pickDateTime(
                       context,
-                      _due ?? DateTime.now().add(const Duration(hours: 1)),
+                      DateTime.now().add(const Duration(hours: 1)),
                     );
                     if (d != null) {
                       setState(() {
@@ -199,98 +159,159 @@ class _TaskFormState extends ConsumerState<TaskForm> {
                     }
                   },
                 ),
-                if (_due != null) ...[
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.notifications),
-                    title: const Text('التذكير'),
-                    trailing: DropdownButton<int?>(
-                      value: _reminder,
-                      underline: const SizedBox(),
-                      items: [
-                        for (final e in _reminderOffsets.entries)
-                          DropdownMenuItem(value: e.key, child: Text(e.value)),
-                      ],
-                      onChanged: (v) => setState(() => _reminder = v),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.repeat),
-                    title: const Text('التكرار'),
-                    trailing: DropdownButton<Repeat>(
-                      value: _repeat,
-                      underline: const SizedBox(),
-                      items: [
-                        for (final e in repeatLabels.entries)
-                          DropdownMenuItem(value: e.key, child: Text(e.value)),
-                      ],
-                      onChanged: (v) => setState(() => _repeat = v!),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (_editing && widget.task!.parentId == null) ...[
-            const SizedBox(height: 16),
-            const Text(
-              'المهام الفرعية',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            for (final s in subtasks)
-              CheckboxListTile(
-                value: s.done,
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  s.title,
-                  style: TextStyle(
-                    decoration: s.done ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-                secondary: IconButton(
-                  icon: Icon(Icons.close, color: c.outline),
-                  onPressed: () => TaskActions.delete(ref, s),
-                ),
-                onChanged: (_) => TaskActions.toggle(ref, s),
+                onTap: _due == null
+                    ? null
+                    : () async {
+                        final d = await pickDateTime(context, _due!);
+                        if (d != null) setState(() => _due = d);
+                      },
               ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _sub,
-                    decoration: const InputDecoration(
-                      hintText: 'أضف مهمة فرعية',
-                      isDense: true,
-                    ),
-                    onSubmitted: (_) => _addSubtask(),
+              if (_due != null) ...[
+                IosTile(
+                  leading: const IconBadge(
+                    CupertinoIcons.bell_fill,
+                    IosColors.orange,
                   ),
+                  title: 'التذكير',
+                  value: _reminderOffsets[_reminder],
+                  chevron: true,
+                  onTap: () async {
+                    // -1 = بدون تذكير (null لا يصلح لأنه يعني الإلغاء)
+                    final keys = [
+                      for (final k in _reminderOffsets.keys) k ?? -1,
+                    ];
+                    final v = await pickFromList<int>(
+                      context,
+                      items: keys,
+                      initial: _reminder ?? -1,
+                      label: (k) => _reminderOffsets[k == -1 ? null : k]!,
+                    );
+                    if (v != null) {
+                      setState(() => _reminder = v == -1 ? null : v);
+                    }
+                  },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle),
-                  onPressed: _addSubtask,
+                IosTile(
+                  leading: const IconBadge(
+                    CupertinoIcons.repeat,
+                    IosColors.gray,
+                  ),
+                  title: 'التكرار',
+                  value: repeatLabels[_repeat],
+                  chevron: true,
+                  onTap: () async {
+                    final v = await pickFromList<Repeat>(
+                      context,
+                      items: Repeat.values,
+                      initial: _repeat,
+                      label: (r) => repeatLabels[r]!,
+                    );
+                    if (v != null) setState(() => _repeat = v);
+                  },
+                ),
+              ],
+            ],
+          ),
+          IosSection(
+            dividerIndent: 60,
+            children: [
+              IosTile(
+                leading: const IconBadge(
+                  CupertinoIcons.tag_fill,
+                  IosColors.purple,
+                ),
+                title: 'التصنيف',
+                value: _category,
+                chevron: true,
+                onTap: () async {
+                  final v = await pickFromList<String>(
+                    context,
+                    items: cats,
+                    initial: _category,
+                    label: (c) => c,
+                  );
+                  if (v != null) setState(() => _category = v);
+                },
+              ),
+            ],
+          ),
+          if (_editing && widget.task!.parentId == null)
+            IosSection(
+              header: 'المهام الفرعية',
+              dividerIndent: 52,
+              children: [
+                for (final s in subtasks)
+                  Row(
+                    children: [
+                      const SizedBox(width: 14),
+                      IosCheck(
+                        done: s.done,
+                        color: s.done ? Ios.tint(context) : IosColors.gray,
+                        onTap: () => TaskActions.toggle(ref, s),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          s.title,
+                          style: TextStyle(
+                            fontSize: 17,
+                            color: s.done
+                                ? Ios.secondary(context)
+                                : Ios.label(context),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          CupertinoIcons.xmark_circle_fill,
+                          color: Ios.tertiary(context),
+                        ),
+                        onPressed: () => TaskActions.delete(ref, s),
+                      ),
+                    ],
+                  ),
+                Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    Icon(
+                      CupertinoIcons.plus_circle_fill,
+                      color: Ios.tint(context),
+                      size: 26,
+                    ),
+                    Expanded(
+                      child: IosField(
+                        _sub,
+                        'مهمة فرعية جديدة',
+                        onSubmitted: (_) => _addSubtask(),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
           if (!_editing)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 'يمكنك إضافة مهام فرعية بعد حفظ المهمة.',
-                style: TextStyle(color: c.outline, fontSize: 12),
+                style: TextStyle(color: Ios.secondary(context), fontSize: 13),
               ),
             ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.check),
-            label: const Text('حفظ'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
+          if (_editing)
+            IosSection(
+              children: [
+                IosTile(
+                  title: 'حذف المهمة',
+                  titleColor: IosColors.red,
+                  onTap: () async {
+                    if (await confirmDialog(context, 'حذف هذه المهمة؟')) {
+                      await TaskActions.delete(ref, widget.task!);
+                      if (context.mounted) Navigator.pop(context);
+                    }
+                  },
+                ),
+              ],
             ),
-          ),
         ],
       ),
     );

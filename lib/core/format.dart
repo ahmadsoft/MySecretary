@@ -7,12 +7,17 @@ class Fmt {
   static String money(num v, [String currency = 'ر.س']) =>
       '${_money.format(v)} $currency';
 
-  static String date(DateTime d) => DateFormat('d MMMM yyyy', 'ar').format(d);
-  static String shortDate(DateTime d) => DateFormat('d MMM', 'ar').format(d);
-  static String time(DateTime d) => DateFormat('h:mm a', 'ar').format(d);
+  static String date(DateTime d) =>
+      normalizeDigits(DateFormat('d MMMM yyyy', 'ar').format(d));
+  static String shortDate(DateTime d) =>
+      normalizeDigits(DateFormat('d MMM', 'ar').format(d));
+  static String time(DateTime d) =>
+      normalizeDigits(DateFormat('h:mm a', 'ar').format(d));
   static String dateTime(DateTime d) => '${date(d)} - ${time(d)}';
-  static String weekday(DateTime d) => DateFormat('EEEE', 'ar').format(d);
-  static String month(DateTime d) => DateFormat('MMMM yyyy', 'ar').format(d);
+  static String weekday(DateTime d) =>
+      normalizeDigits(DateFormat('EEEE', 'ar').format(d));
+  static String month(DateTime d) =>
+      normalizeDigits(DateFormat('MMMM yyyy', 'ar').format(d));
 
   static bool sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;

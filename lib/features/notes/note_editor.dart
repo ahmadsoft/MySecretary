@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -17,7 +20,7 @@ class NoteEditor extends ConsumerStatefulWidget {
 class _NoteEditorState extends ConsumerState<NoteEditor> {
   late final _title = TextEditingController(text: widget.note?.title);
   late final _content = TextEditingController(text: widget.note?.content);
-  late int _color = widget.note?.color ?? 0xFF1E6F5C;
+  late int _color = widget.note?.color ?? IosColors.yellow.toARGB32();
   late bool _pinned = widget.note?.pinned ?? false;
   bool _saved = false;
 
@@ -46,20 +49,26 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
         if (didPop) _save();
       },
       child: Scaffold(
+        backgroundColor: Ios.cell(context),
         appBar: AppBar(
+          backgroundColor: Ios.cell(context),
           actions: [
-            IconButton(
+            NavIcon(
+              _pinned ? CupertinoIcons.pin_fill : CupertinoIcons.pin,
               tooltip: 'تثبيت',
-              icon: Icon(_pinned ? Icons.push_pin : Icons.push_pin_outlined),
               onPressed: () => setState(() => _pinned = !_pinned),
             ),
             IconButton(
               tooltip: 'اللون',
-              icon: Icon(Icons.palette, color: Color(_color)),
+              icon: Icon(
+                CupertinoIcons.circle_fill,
+                color: Color(_color),
+                size: 24,
+              ),
               onPressed: () => showModalBottomSheet(
                 context: context,
                 builder: (ctx) => Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
                   child: ColorPicker(
                     selected: _color,
                     onChanged: (v) {
@@ -71,8 +80,9 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
               ),
             ),
             if (widget.note != null)
-              IconButton(
-                icon: const Icon(Icons.delete_outline),
+              NavIcon(
+                CupertinoIcons.trash,
+                tooltip: 'حذف',
                 onPressed: () async {
                   if (await confirmDialog(context, 'حذف الملاحظة؟')) {
                     _saved = true;
@@ -82,22 +92,27 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
                   }
                 },
               ),
+            NavTextButton('تم', onPressed: () => Navigator.maybePop(context)),
           ],
         ),
         body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
+              Text(
+                Fmt.dateTime(widget.note?.updatedAt ?? DateTime.now()),
+                style: TextStyle(fontSize: 13, color: Ios.secondary(context)),
+              ),
               TextField(
                 controller: _title,
                 style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
                 ),
                 decoration: const InputDecoration(
                   hintText: 'العنوان',
-                  border: InputBorder.none,
                   filled: false,
+                  contentPadding: EdgeInsets.symmetric(vertical: 8),
                 ),
               ),
               Expanded(
@@ -106,11 +121,12 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
                   autofocus: widget.note == null,
                   maxLines: null,
                   expands: true,
+                  style: const TextStyle(fontSize: 17, height: 1.5),
                   textAlignVertical: TextAlignVertical.top,
                   decoration: const InputDecoration(
                     hintText: 'اكتب ملاحظتك...',
-                    border: InputBorder.none,
                     filled: false,
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),

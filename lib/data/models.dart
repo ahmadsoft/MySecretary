@@ -156,7 +156,7 @@ class Event {
     required this.endAt,
     this.allDay = false,
     this.reminderMinutes = 30,
-    this.color = 0xFF2E86DE,
+    this.color = 0xFF007AFF,
   });
 
   Map<String, Object?> toMap() => {
@@ -180,7 +180,7 @@ class Event {
     endAt: _dt(m['end_at'])!,
     allDay: m['all_day'] == 1,
     reminderMinutes: m['reminder_minutes'] as int?,
-    color: (m['color'] as int?) ?? 0xFF2E86DE,
+    color: (m['color'] as int?) ?? 0xFF007AFF,
   );
 }
 
@@ -207,7 +207,7 @@ class Note {
     this.id,
     this.title = '',
     this.content = '',
-    this.color = 0xFF1E6F5C,
+    this.color = 0xFFFFCC00,
     this.pinned = false,
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now();
@@ -225,7 +225,7 @@ class Note {
     id: m['id'] as int?,
     title: (m['title'] as String?) ?? '',
     content: (m['content'] as String?) ?? '',
-    color: (m['color'] as int?) ?? 0xFF1E6F5C,
+    color: (m['color'] as int?) ?? 0xFFFFCC00,
     pinned: m['pinned'] == 1,
     updatedAt: _dt(m['updated_at']),
   );
