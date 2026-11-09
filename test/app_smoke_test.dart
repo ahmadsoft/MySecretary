@@ -9,6 +9,7 @@ import 'package:my_secretary/data/db.dart';
 import 'package:my_secretary/data/models.dart';
 import 'package:my_secretary/data/repository.dart';
 import 'package:my_secretary/core/glass.dart';
+import 'package:my_secretary/features/alarm/alarm_screen.dart';
 import 'package:my_secretary/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -202,6 +203,7 @@ extension on Category {
 
 void main() {
   setUpAll(() async {
+    AlarmScreen.enableSound = false;
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     SharedPreferences.setMockInitialValues({});
@@ -367,6 +369,25 @@ void main() {
     await tester.tap(find.text('رسائل البنوك'));
     await settle();
     await shot('12_sms_settings');
+    back();
+    await settle();
+
+    await tester.tap(find.text('الإعدادات'));
+    await settle();
+    await shot('15_settings');
+    await tester.tap(find.text('تجربة المنبه الآن'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('منبه تجريبي'), findsWidgets);
+    if (shots) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/16_alarm.png'),
+      );
+    }
+    await tester.tap(find.text('إيقاف'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     back();
     await settle();
 

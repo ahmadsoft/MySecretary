@@ -209,24 +209,7 @@ class BackupService {
       }
     }
 
-    await _rescheduleReminders(db);
-  }
-
-  static Future<void> _rescheduleReminders(Database db) async {
-    final n = NotificationService.instance;
-    await n.cancelAll();
-    for (final r in await db.query(
-      'tasks',
-      where: 'done = 0 AND reminder_at IS NOT NULL',
-    )) {
-      await n.scheduleTask(Task.fromMap(r));
-    }
-    for (final r in await db.query(
-      'events',
-      where: 'reminder_minutes IS NOT NULL',
-    )) {
-      await n.scheduleEvent(Event.fromMap(r));
-    }
+    await NotificationService.instance.rescheduleAll();
   }
 
   // ───────────────────────── CSV ─────────────────────────

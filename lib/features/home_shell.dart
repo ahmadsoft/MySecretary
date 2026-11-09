@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/glass.dart';
 import '../data/providers.dart';
 import '../services/sms_service.dart';
+import 'alarm/alarm_controller.dart';
 import 'calendar/calendar_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'expenses/expenses_screen.dart';
@@ -30,17 +31,23 @@ class _HomeShellState extends ConsumerState<HomeShell>
       if (mounted) refreshFinance(ref);
     };
     SmsService.instance.start();
+    // المنبه بملء الشاشة بعد بناء الواجهة
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => AlarmController.instance.start(),
+    );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AlarmController.instance.stop();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      AlarmController.instance.check();
       // التقاط الرسائل التي وصلت أثناء إغلاق التطبيق
       SmsService.instance.syncInbox().then((_) {
         if (mounted) refreshFinance(ref);

@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/theme.dart';
 import 'data/providers.dart';
+import 'features/alarm/alarm_controller.dart';
 import 'features/home_shell.dart';
 import 'services/notification_service.dart';
 
@@ -33,6 +34,7 @@ class MySecretaryApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      navigatorKey: navigatorKey,
       home: const HomeShell(),
     );
   }
