@@ -153,6 +153,10 @@ class NotificationService {
     if (_ready) await _plugin.cancel(id: _eventBase + id);
   }
 
+  Future<void> cancelAll() async {
+    if (_ready) await _plugin.cancelAll();
+  }
+
   Future<void> showSmsRecorded(int txId, String title, String body) async {
     if (!_ready) return;
     await _plugin.show(

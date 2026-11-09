@@ -7,6 +7,7 @@ import 'estate/estates_screen.dart';
 import 'expenses/categories_screen.dart';
 import 'expenses/sms_settings_screen.dart';
 import 'notes/notes_screen.dart';
+import 'settings/backup_screen.dart';
 import 'settings/settings_screen.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -69,6 +70,13 @@ class MoreScreen extends StatelessWidget {
           IosSection(
             dividerIndent: 60,
             children: [
+              tile(
+                CupertinoIcons.cloud_upload_fill,
+                IosColors.blue,
+                'النسخ الاحتياطي',
+                'حفظ البيانات في الملفات واستعادتها',
+                const BackupScreen(),
+              ),
               tile(
                 CupertinoIcons.gear_solid,
                 IosColors.gray,

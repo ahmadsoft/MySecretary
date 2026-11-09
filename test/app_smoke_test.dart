@@ -348,6 +348,13 @@ void main() {
     back();
     await settle();
 
+    await tester.tap(find.text('النسخ الاحتياطي'));
+    await settle();
+    expect(find.text('حفظ في الملفات'), findsOneWidget);
+    await shot('14_backup');
+    back();
+    await settle();
+
     await tester.tap(find.text('رسائل البنوك'));
     await settle();
     await shot('12_sms_settings');

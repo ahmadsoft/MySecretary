@@ -44,7 +44,7 @@ class SettingsScreen extends ConsumerWidget {
               IosTile(
                 leading: IconBadge(CupertinoIcons.info, IosColors.gray),
                 title: 'الإصدار',
-                value: '1.1.0',
+                value: '1.2.0',
               ),
             ],
           ),
