@@ -50,7 +50,16 @@ echo "• ترتيب مراحل البناء..."
 python3 tool/fix_build_phases.py ios/Runner.xcodeproj/project.pbxproj
 
 echo "• الفحص النهائي:"
-dart run alarm_kit:setup --doctor
+dart run alarm_kit:setup --doctor || true
+
+# Xcode 16 وما بعده ينشئ مجلد الإضافة "متزامناً": كل ملفات Swift داخله تُضاف للهدف تلقائياً،
+# لكن فاحص alarm_kit لا يتعرف على هذا النوع فيُظهر علامتي ✗ عن Target Membership.
+if grep -q "PBXFileSystemSynchronizedRootGroup" ios/Runner.xcodeproj/project.pbxproj \
+   && grep -q "path = AlarmWidget;" ios/Runner.xcodeproj/project.pbxproj; then
+  echo
+  echo "ℹ️  مجلد AlarmWidget متزامن مع هدف الإضافة، فالملفات مضافة تلقائياً."
+  echo "   علامتا ✗ عن Target Membership أعلاه متوقعتان ويمكن تجاهلهما."
+fi
 
 echo
 echo "✓ انتهى الإعداد. الخطوات التالية:"
