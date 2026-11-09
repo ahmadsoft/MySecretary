@@ -12,6 +12,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../core/format.dart';
 import '../data/db.dart';
 import '../data/models.dart';
+import 'alarmkit_service.dart';
 
 /// بيانات المنبه المحمولة داخل الإشعار (تكفي لعرضه وتأجيله بدون قاعدة البيانات).
 class AlarmPayload {
@@ -186,6 +187,7 @@ class NotificationService {
         onDidReceiveBackgroundNotificationResponse: alarmBackgroundHandler,
       );
       _ready = true;
+      await AlarmKitService.instance.init();
       if (requestPermission) await _requestPermissions();
     } catch (e) {
       debugPrint('Notification init failed: $e');
@@ -262,8 +264,24 @@ class NotificationService {
   Future<void> _schedule(AlarmPayload p, DateTime when, {bool? alarm}) async {
     if (!_ready) return;
     await _plugin.cancel(id: p.notifId);
+    final kit = AlarmKitService.instance;
+    await kit.cancel(p.notifId);
     if (when.isBefore(DateTime.now())) return;
-    final details = (alarm ?? alarmMode) ? _alarmDetails : _details;
+    final useAlarm = alarm ?? alarmMode;
+    // iOS 26: منبه النظام بملء الشاشة بدل الإشعار
+    if (useAlarm &&
+        await kit.schedule(
+          notifId: p.notifId,
+          title: p.title.replaceFirst(
+            RegExp(r'^[📝📅⏰]\s*', unicode: true),
+            '',
+          ),
+          at: when,
+          isEvent: p.type == 'event',
+        )) {
+      return;
+    }
+    final details = useAlarm ? _alarmDetails : _details;
     final date = tz.TZDateTime.from(when, tz.local);
     try {
       await _plugin.zonedSchedule(
@@ -338,11 +356,13 @@ class NotificationService {
 
   Future<void> cancelId(int notifId) async {
     if (_ready) await _plugin.cancel(id: notifId);
+    await AlarmKitService.instance.cancel(notifId);
     await _removeSnooze(notifId);
   }
 
   Future<void> cancelAll() async {
     if (_ready) await _plugin.cancelAll();
+    await AlarmKitService.instance.cancelAll();
     await (await SharedPreferences.getInstance()).remove(kSnoozes);
   }
 
@@ -415,6 +435,7 @@ class NotificationService {
   Future<void> rescheduleAll() async {
     final db = await AppDb.instance;
     if (_ready) await _plugin.cancelAll();
+    await AlarmKitService.instance.cancelAll();
     for (final r in await db.query(
       'tasks',
       where: 'done = 0 AND reminder_at IS NOT NULL',

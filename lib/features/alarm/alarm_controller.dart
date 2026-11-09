@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import '../../core/format.dart';
 import '../../core/widgets.dart';
 import '../../data/providers.dart';
+import '../../services/alarmkit_service.dart';
 import '../../services/notification_service.dart';
 import 'alarm_screen.dart';
 
@@ -39,7 +40,8 @@ class AlarmController {
 
   /// يبحث عن التذكيرات التي حان وقتها منذ آخر فحص.
   Future<void> check() async {
-    if (!_n.alarmMode) {
+    // على iOS 26 مع منبه النظام: النظام نفسه يعرض المنبه
+    if (!_n.alarmMode || AlarmKitService.instance.active) {
       _lastCheck = DateTime.now();
       return;
     }

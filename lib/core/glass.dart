@@ -84,7 +84,7 @@ class GlassPanel extends StatelessWidget {
     this.padding,
     this.tint,
     this.glass,
-    this.shadow = 1,
+    this.shadow = 0,
   });
 
   @override
@@ -192,7 +192,6 @@ class GlassTabBar extends StatelessWidget {
         child: GlassPanel(
           radius: 34,
           glass: true,
-          shadow: 1.6,
           padding: const EdgeInsets.all(6),
           child: SizedBox(
             height: 58,

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/providers.dart';
+import '../../services/alarmkit_service.dart';
 import '../../services/notification_service.dart';
 import '../alarm/alarm_controller.dart';
 
@@ -47,7 +48,7 @@ class SettingsScreen extends ConsumerWidget {
               IosTile(
                 leading: IconBadge(CupertinoIcons.info, IosColors.gray),
                 title: 'الإصدار',
-                value: '1.4.0',
+                value: '1.5.0',
               ),
             ],
           ),
@@ -67,12 +68,16 @@ class _AlarmSettings extends StatefulWidget {
 
 class _AlarmSettingsState extends State<_AlarmSettings> {
   final n = NotificationService.instance;
+  final kit = AlarmKitService.instance;
 
   @override
   Widget build(BuildContext context) {
     return IosSection(
       header: 'التنبيهات',
-      footer: n.alarmMode
+      footer: kit.active
+          ? 'منبه النظام مفعل: تظهر تذكيرات المهام والمواعيد كمنبه iPhone بملء الشاشة فوق شاشة القفل، '
+                'مع زرّي "إيقاف" و"تأجيل 10 دقائق". جرّب "منبه بعد 10 ثوانٍ" ثم أقفل الجوال.'
+          : n.alarmMode
           ? 'تظهر تذكيرات المهام والمواعيد بملء الشاشة مع صوت مستمر، '
                 'ويمكنك إيقافها أو تأجيلها ${NotificationService.snoozeMinutes} دقائق. '
                 'جرّب "منبه بعد 10 ثوانٍ" ثم أقفل الجوال لترى الشكل على شاشة القفل.'
@@ -90,6 +95,30 @@ class _AlarmSettingsState extends State<_AlarmSettings> {
             },
           ),
         ),
+        if (n.alarmMode && kit.supported)
+          IosTile(
+            leading: const IconBadge(
+              CupertinoIcons.lock_shield_fill,
+              IosColors.indigo,
+            ),
+            title: 'منبه النظام (iOS 26)',
+            subtitle: 'يرن فوق شاشة القفل وفي الوضع الصامت',
+            trailing: IosSwitch(
+              value: kit.active,
+              onChanged: (v) async {
+                final ok = await kit.setEnabled(v);
+                if (!ok && context.mounted) {
+                  await infoDialog(
+                    context,
+                    'لم يتم التفعيل',
+                    'اسمح لتطبيق سكرتيري باستخدام المنبهات من: الإعدادات ← التطبيقات ← سكرتيري ← المنبهات.',
+                  );
+                }
+                await n.rescheduleAll();
+                if (mounted) setState(() {});
+              },
+            ),
+          ),
         if (n.alarmMode) ...[
           IosTile(
             leading: const IconBadge(CupertinoIcons.play_fill, IosColors.green),
