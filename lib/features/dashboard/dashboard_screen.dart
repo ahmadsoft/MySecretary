@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/glass.dart';
+
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -51,6 +53,7 @@ class DashboardScreen extends ConsumerWidget {
     void push(Widget w) => Navigator.push(context, iosRoute(w));
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator.adaptive(
@@ -60,7 +63,7 @@ class DashboardScreen extends ConsumerWidget {
             refreshFinance(ref);
           },
           child: ListView(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: EdgeInsets.only(bottom: tabBarSpace(context)),
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
@@ -88,65 +91,54 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              // بطاقات ذكية بطابع تطبيق التذكيرات
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _SmartCard(
-                        icon: CupertinoIcons.calendar_today,
-                        color: IosColors.blue,
-                        title: 'مهام اليوم',
-                        value: todayTotal == 0 ? '0' : '$todayDone/$todayTotal',
-                        progress: todayTotal == 0
-                            ? null
-                            : todayDone / todayTotal,
-                        onTap: () => onNavigate(1),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SmartCard(
-                        icon: CupertinoIcons.exclamationmark_circle_fill,
-                        color: overdue.isEmpty ? IosColors.gray : IosColors.red,
-                        title: 'متأخرة',
-                        value: '${overdue.length}',
-                        onTap: () => onNavigate(1),
-                      ),
-                    ),
-                  ],
-                ),
+              // بطاقات زجاجية
+              CardGrid(
+                children: [
+                  _SmartCard(
+                    icon: CupertinoIcons.checkmark_alt_circle_fill,
+                    color: IosColors.blue,
+                    title: 'مهام اليوم',
+                    subtitle: todayTotal == 0
+                        ? 'لا توجد مهام'
+                        : 'أنجزت $todayDone من $todayTotal',
+                    value: todayTotal == 0 ? '0' : '$todayDone/$todayTotal',
+                    badge: todayTotal == 0
+                        ? null
+                        : '${(todayDone / todayTotal * 100).round()}%',
+                    progress: todayTotal == 0 ? 0 : todayDone / todayTotal,
+                    onTap: () => onNavigate(1),
+                  ),
+                  _SmartCard(
+                    icon: CupertinoIcons.exclamationmark_circle_fill,
+                    color: overdue.isEmpty ? IosColors.green : IosColors.red,
+                    title: 'متأخرة',
+                    subtitle: overdue.isEmpty
+                        ? 'كل شيء في وقته'
+                        : 'تحتاج متابعة',
+                    value: '${overdue.length}',
+                    onTap: () => onNavigate(1),
+                  ),
+                  _SmartCard(
+                    icon: CupertinoIcons.calendar,
+                    color: IosColors.red,
+                    title: 'مواعيد اليوم',
+                    subtitle: todayEvents.isEmpty
+                        ? 'يومك فارغ'
+                        : 'الأول ${todayEvents.first.allDay ? 'طوال اليوم' : Fmt.time(todayEvents.first.startAt)}',
+                    value: '${todayEvents.length}',
+                    onTap: () => onNavigate(2),
+                  ),
+                  _SmartCard(
+                    icon: CupertinoIcons.creditcard_fill,
+                    color: IosColors.orange,
+                    title: 'مصروف اليوم',
+                    subtitle: 'الشهر ${Fmt.money(monthExpense)}',
+                    value: Fmt.money(todayExpense),
+                    onTap: () => onNavigate(3),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _SmartCard(
-                        icon: CupertinoIcons.calendar,
-                        color: IosColors.red,
-                        title: 'مواعيد اليوم',
-                        value: '${todayEvents.length}',
-                        onTap: () => onNavigate(2),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SmartCard(
-                        icon: CupertinoIcons.creditcard_fill,
-                        color: IosColors.green,
-                        title: 'مصروف اليوم',
-                        value: Fmt.money(todayExpense),
-                        small: true,
-                        onTap: () => onNavigate(3),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 10),
               IosSection(
                 header: 'إضافة سريعة',
                 dividerIndent: 60,
@@ -261,8 +253,9 @@ class _SmartCard extends StatelessWidget {
   final Color color;
   final String title;
   final String value;
+  final String? subtitle;
+  final String? badge;
   final double? progress;
-  final bool small;
   final VoidCallback onTap;
   const _SmartCard({
     required this.icon,
@@ -270,70 +263,20 @@ class _SmartCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onTap,
+    this.subtitle,
+    this.badge,
     this.progress,
-    this.small = false,
   });
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Ios.cell(context),
-    borderRadius: BorderRadius.circular(14),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 18),
-                ),
-                const Spacer(),
-                Flexible(
-                  flex: 4,
-                  child: FittedBox(
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: small ? 20 : 26,
-                        fontWeight: FontWeight.w700,
-                        color: Ios.label(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Ios.secondary(context),
-              ),
-            ),
-            if (progress != null) ...[
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
-                value: progress,
-                color: color,
-                minHeight: 4,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ],
-          ],
-        ),
-      ),
-    ),
+  Widget build(BuildContext context) => StatCard(
+    icon: icon,
+    color: color,
+    title: title,
+    subtitle: subtitle,
+    value: value,
+    badge: badge,
+    progress: progress,
+    onTap: onTap,
   );
 }

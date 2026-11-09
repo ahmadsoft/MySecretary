@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/glass.dart';
+
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/format.dart';
@@ -50,6 +53,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         .toList();
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: largeTitleBar(
         context,
         'التقويم',
@@ -68,7 +72,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: EdgeInsets.only(bottom: tabBarSpace(context)),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),

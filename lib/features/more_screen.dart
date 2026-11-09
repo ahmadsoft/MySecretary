@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../core/glass.dart';
+
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import 'estate/estates_screen.dart';
@@ -24,9 +26,10 @@ class MoreScreen extends StatelessWidget {
           onTap: () => Navigator.push(context, iosRoute(page)),
         );
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: largeTitleBar(context, 'المزيد'),
       body: ListView(
-        padding: const EdgeInsets.only(top: 8),
+        padding: EdgeInsets.only(top: 8, bottom: tabBarSpace(context)),
         children: [
           IosSection(
             dividerIndent: 60,

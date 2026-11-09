@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'glass.dart';
 import 'theme.dart';
 
 // ═══════════════════════ عناصر واجهة بطابع iOS ═══════════════════════
@@ -13,6 +14,7 @@ PreferredSizeWidget largeTitleBar(
   PreferredSizeWidget? bottom,
 }) {
   return AppBar(
+    backgroundColor: Colors.transparent,
     centerTitle: false,
     toolbarHeight: 60,
     titleSpacing: 20,
@@ -118,14 +120,11 @@ class IosSection extends StatelessWidget {
                 ],
               ),
             ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Material(
-              color: Ios.cell(context),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: rows,
-              ),
+          GlassPanel(
+            radius: 20,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: rows,
             ),
           ),
           if (footer != null)

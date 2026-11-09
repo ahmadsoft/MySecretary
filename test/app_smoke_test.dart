@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:my_secretary/data/db.dart';
 import 'package:my_secretary/data/models.dart';
 import 'package:my_secretary/data/repository.dart';
+import 'package:my_secretary/core/glass.dart';
 import 'package:my_secretary/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -275,7 +275,7 @@ void main() {
     Future<void> tab(String label) async {
       await tester.tap(
         find.descendant(
-          of: find.byType(CupertinoTabBar),
+          of: find.byType(GlassTabBar),
           matching: find.text(label),
         ),
       );
@@ -305,7 +305,16 @@ void main() {
     await settle();
     await shot('4_expenses');
 
-    await tester.ensureVisible(find.text('STARBUCKS'));
+    await tester.scrollUntilVisible(
+      find.text('STARBUCKS'),
+      300,
+      scrollable: find.byType(Scrollable).hitTestable().first,
+    );
+    // إبعاد العنصر عن الشريط السفلي العائم
+    await tester.drag(
+      find.byType(Scrollable).hitTestable().first,
+      const Offset(0, -250),
+    );
     await settle();
     await tester.tap(find.text('STARBUCKS'));
     await settle();

@@ -1,7 +1,8 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/glass.dart';
 
 import '../../core/format.dart';
 import '../../core/icons.dart';
@@ -24,6 +25,7 @@ class ExpensesScreen extends ConsumerWidget {
     final catById = {for (final c in cats) c.id: c};
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: largeTitleBar(
         context,
         'المصاريف',
@@ -108,8 +110,10 @@ class ExpensesScreen extends ConsumerWidget {
         .where((t) => t.kind == TxKind.income)
         .fold(0.0, (s, t) => s + t.amount);
     final byCat = <int?, double>{};
+    final countByCat = <int?, int>{};
     for (final t in exp) {
       byCat[t.categoryId] = (byCat[t.categoryId] ?? 0) + t.amount;
+      countByCat[t.categoryId] = (countByCat[t.categoryId] ?? 0) + 1;
     }
     final sorted = byCat.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -124,7 +128,7 @@ class ExpensesScreen extends ConsumerWidget {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.only(bottom: tabBarSpace(context)),
       children: [
         // اختيار الشهر
         Padding(
@@ -156,12 +160,9 @@ class ExpensesScreen extends ConsumerWidget {
         // البطاقة الرئيسية
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Ios.cell(context),
-              borderRadius: BorderRadius.circular(16),
-            ),
+          child: GlassPanel(
+            radius: 24,
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -213,77 +214,24 @@ class ExpensesScreen extends ConsumerWidget {
             ),
           ),
         ),
-        if (sorted.isNotEmpty)
-          IosSection(
-            header: 'توزيع المصروفات',
+        if (sorted.isNotEmpty) ...[
+          const SectionTitle('الفئات'),
+          const SizedBox(height: 6),
+          CardGrid(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 120,
-                      height: 120,
-                      child: PieChart(
-                        PieChartData(
-                          sectionsSpace: 2,
-                          centerSpaceRadius: 34,
-                          sections: [
-                            for (final e in sorted)
-                              PieChartSectionData(
-                                value: e.value,
-                                color: Color(
-                                  catById[e.key]?.color ?? 0xFF8E8E93,
-                                ),
-                                radius: 22,
-                                showTitle: false,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (final e in sorted.take(5))
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 3),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 4,
-                                    backgroundColor: Color(
-                                      catById[e.key]?.color ?? 0xFF8E8E93,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      catById[e.key]?.name ?? 'بدون تصنيف',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${(e.value / totalExp * 100).toStringAsFixed(0)}%',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Ios.secondary(context),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+              for (final e in sorted)
+                StatCard(
+                  icon: iconAt(catById[e.key]?.icon ?? -1),
+                  color: Color(catById[e.key]?.color ?? 0xFF8E8E93),
+                  title: catById[e.key]?.name ?? 'بدون تصنيف',
+                  subtitle: '${countByCat[e.key] ?? 0} عملية',
+                  value: Fmt.money(e.value),
+                  badge: '${(e.value / totalExp * 100).round()}%',
+                  progress: e.value / totalExp,
                 ),
-              ),
             ],
           ),
+        ],
         if (budgets.isNotEmpty)
           IosSection(
             header: 'الميزانية الشهرية',

@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/theme.dart';
+import '../core/glass.dart';
 import '../data/providers.dart';
 import '../services/sms_service.dart';
 import 'calendar/calendar_screen.dart';
@@ -59,45 +59,44 @@ class _HomeShellState extends ConsumerState<HomeShell>
       const ExpensesScreen(),
       const MoreScreen(),
     ];
-    final c = Theme.of(context);
-    return Scaffold(
-      body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: CupertinoTabBar(
-        currentIndex: _index,
-        onTap: goTo,
-        activeColor: c.colorScheme.primary,
-        inactiveColor: IosColors.gray,
-        backgroundColor: c.brightness == Brightness.dark
-            ? const Color(0xF01C1C1E)
-            : const Color(0xF0F9F9F9),
-        height: 54,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.house),
-            activeIcon: Icon(CupertinoIcons.house_fill),
-            label: 'اليوم',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.checkmark_circle),
-            activeIcon: Icon(CupertinoIcons.checkmark_alt_circle_fill),
-            label: 'المهام',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.calendar),
-            activeIcon: Icon(CupertinoIcons.calendar_today),
-            label: 'التقويم',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.creditcard),
-            activeIcon: Icon(CupertinoIcons.creditcard_fill),
-            label: 'المصاريف',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.square_grid_2x2),
-            activeIcon: Icon(CupertinoIcons.square_grid_2x2_fill),
-            label: 'المزيد',
-          ),
-        ],
+    return GlassBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBody: true,
+        body: GlassScope(
+          child: IndexedStack(index: _index, children: pages),
+        ),
+        bottomNavigationBar: GlassTabBar(
+          currentIndex: _index,
+          onTap: goTo,
+          items: const [
+            GlassTabItem(
+              CupertinoIcons.house,
+              CupertinoIcons.house_fill,
+              'اليوم',
+            ),
+            GlassTabItem(
+              CupertinoIcons.checkmark_circle,
+              CupertinoIcons.checkmark_alt_circle_fill,
+              'المهام',
+            ),
+            GlassTabItem(
+              CupertinoIcons.calendar,
+              CupertinoIcons.calendar_today,
+              'التقويم',
+            ),
+            GlassTabItem(
+              CupertinoIcons.creditcard,
+              CupertinoIcons.creditcard_fill,
+              'المصاريف',
+            ),
+            GlassTabItem(
+              CupertinoIcons.square_grid_2x2,
+              CupertinoIcons.square_grid_2x2_fill,
+              'المزيد',
+            ),
+          ],
+        ),
       ),
     );
   }

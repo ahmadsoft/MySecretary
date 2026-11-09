@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/glass.dart';
+
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -35,6 +37,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(tasksProvider);
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: largeTitleBar(
         context,
         'المهام',
@@ -107,7 +110,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           ];
 
           return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: EdgeInsets.only(bottom: tabBarSpace(context)),
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
