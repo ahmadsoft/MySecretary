@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- لا يستخدم التطبيق تشفيراً خاصاً (اتصالات HTTPS للنظام فقط) -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>يستخدم سكرتيري منبه النظام لتنبيهك بالمهام والمواعيد بملء الشاشة حتى والجوال مقفل.</string>
 	<key>NSSupportsLiveActivities</key>

@@ -8,6 +8,8 @@ import '../../data/providers.dart';
 import '../../services/alarmkit_service.dart';
 import '../../services/notification_service.dart';
 import '../alarm/alarm_controller.dart';
+import '../permissions/permission_prompts.dart';
+import 'privacy_policy_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -36,19 +38,24 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           const _AlarmSettings(),
-          const IosSection(
+          IosSection(
             dividerIndent: 60,
             footer: 'جميع بياناتك محفوظة محلياً على جهازك فقط ولا تُرسل إلى أي خادم.',
             children: [
               IosTile(
-                leading: IconBadge(CupertinoIcons.lock_fill, IosColors.blue),
-                title: 'الخصوصية',
+                leading: const IconBadge(
+                  CupertinoIcons.lock_fill,
+                  IosColors.blue,
+                ),
+                title: 'سياسة الخصوصية',
                 value: 'محلي',
+                chevron: true,
+                onTap: () => openPrivacyPolicy(context),
               ),
-              IosTile(
+              const IosTile(
                 leading: IconBadge(CupertinoIcons.info, IosColors.gray),
                 title: 'الإصدار',
-                value: '1.5.0',
+                value: '1.6.0',
               ),
             ],
           ),
@@ -69,6 +76,18 @@ class _AlarmSettings extends StatefulWidget {
 class _AlarmSettingsState extends State<_AlarmSettings> {
   final n = NotificationService.instance;
   final kit = AlarmKitService.instance;
+  bool _notifAllowed = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshPermission();
+  }
+
+  Future<void> _refreshPermission() async {
+    final v = await notificationsAllowed();
+    if (mounted) setState(() => _notifAllowed = v);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +103,23 @@ class _AlarmSettingsState extends State<_AlarmSettings> {
           : 'تظهر التذكيرات كإشعارات عادية.',
       dividerIndent: 60,
       children: [
+        if (!_notifAllowed)
+          IosTile(
+            leading: const IconBadge(
+              CupertinoIcons.bell_slash_fill,
+              IosColors.red,
+            ),
+            title: 'الإشعارات غير مسموحة',
+            subtitle: 'لن تصلك التذكيرات. اضغط للسماح بها',
+            chevron: true,
+            onTap: () async {
+              await n.requestPermissions();
+              await _refreshPermission();
+              if (!_notifAllowed && context.mounted) {
+                await explainDeniedPermission(context, 'الإشعارات');
+              }
+            },
+          ),
         IosTile(
           leading: const IconBadge(alarmIcon, IosColors.orange),
           title: 'تنبيه بملء الشاشة (منبه)',

@@ -1016,6 +1016,7 @@ PBXPY
   # the binary installs from TestFlight and is still barred from review.
   MANIFEST_VALIDATOR=""
   for candidate in \
+    "$(dirname "$0")/../scripts/validate-privacy-manifest.py" \
     "$(dirname "$0")/../../scripts/validate-privacy-manifest.py" \
     "$(dirname "$0")/../skills/app-store-compliance/scripts/validate-privacy-manifest.py" \
     "${HOME:-}/.claude/skills/app-store-compliance/scripts/validate-privacy-manifest.py" \

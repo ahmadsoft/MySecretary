@@ -188,7 +188,7 @@ class NotificationService {
       );
       _ready = true;
       await AlarmKitService.instance.init();
-      if (requestPermission) await _requestPermissions();
+      if (requestPermission) await requestPermissions();
     } catch (e) {
       debugPrint('Notification init failed: $e');
     }
@@ -223,7 +223,8 @@ class NotificationService {
     }
   }
 
-  Future<void> _requestPermissions() async {
+  /// طلب أذونات الإشعارات (بعد عرض شرح السبب للمستخدم).
+  Future<void> requestPermissions() async {
     if (Platform.isAndroid) {
       final a = _plugin
           .resolvePlatformSpecificImplementation<

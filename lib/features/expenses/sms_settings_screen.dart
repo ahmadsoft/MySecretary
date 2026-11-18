@@ -7,6 +7,7 @@ import '../../core/widgets.dart';
 import '../../data/providers.dart';
 import '../../services/sms_parser.dart';
 import '../../services/sms_service.dart';
+import '../permissions/permission_prompts.dart';
 import 'expenses_screen.dart' show showPasteSmsDialog;
 
 class SmsSettingsScreen extends ConsumerStatefulWidget {
@@ -119,11 +120,16 @@ class _SmsSettingsScreenState extends ConsumerState<SmsSettingsScreen> {
                         trailing: IosSwitch(
                           value: _enabled,
                           onChanged: (v) async {
+                            // الإفصاح الواضح والموافقة الصريحة قبل طلب الإذن
+                            if (v &&
+                                !await showSmsProminentDisclosure(context)) {
+                              return;
+                            }
                             final ok = await s.setEnabled(v);
                             if (!ok && context.mounted) {
-                              toast(
+                              await explainDeniedPermission(
                                 context,
-                                'يجب السماح بإذن قراءة الرسائل من إعدادات الجهاز',
+                                'قراءة الرسائل',
                               );
                             }
                             await _load();

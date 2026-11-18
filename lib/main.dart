@@ -12,7 +12,8 @@ import 'services/notification_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar');
-  await NotificationService.instance.init();
+  // الأذونات تُطلب لاحقاً بعد عرض شرح السبب للمستخدم
+  await NotificationService.instance.init(requestPermission: false);
   runApp(const ProviderScope(child: MySecretaryApp()));
 }
 

@@ -6,6 +6,7 @@ import '../core/glass.dart';
 import '../data/providers.dart';
 import '../services/sms_service.dart';
 import 'alarm/alarm_controller.dart';
+import 'permissions/permission_prompts.dart';
 import 'calendar/calendar_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'expenses/expenses_screen.dart';
@@ -32,9 +33,11 @@ class _HomeShellState extends ConsumerState<HomeShell>
     };
     SmsService.instance.start();
     // المنبه بملء الشاشة بعد بناء الواجهة
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => AlarmController.instance.start(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await AlarmController.instance.start();
+      // شرح سبب إذن الإشعارات ثم طلبه (أول تشغيل فقط)
+      if (mounted) await showPermissionRationale(context);
+    });
   }
 
   @override

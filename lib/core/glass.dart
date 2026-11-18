@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'theme.dart';
 
@@ -205,7 +206,12 @@ class GlassTabBar extends StatelessWidget {
                       label: items[i].label,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: () => onTap(i),
+                        onTap: () {
+                          if (i != currentIndex) {
+                            HapticFeedback.selectionClick();
+                          }
+                          onTap(i);
+                        },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,

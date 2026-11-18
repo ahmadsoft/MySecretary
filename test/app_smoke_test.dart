@@ -206,7 +206,7 @@ void main() {
     AlarmScreen.enableSound = false;
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({'notif_rationale_shown': true});
     await initializeDateFormatting('ar');
     // خطوط التطبيق الحقيقية (موجودة في المستودع) بدلاً من خط الاختبار الافتراضي
     {
@@ -375,6 +375,22 @@ void main() {
     await tester.tap(find.text('الإعدادات'));
     await settle();
     await shot('15_settings');
+    await tester.scrollUntilVisible(
+      find.text('سياسة الخصوصية'),
+      200,
+      scrollable: find.byType(Scrollable).hitTestable().first,
+    );
+    await tester.tap(find.text('سياسة الخصوصية'));
+    await settle();
+    expect(find.text('لا يوجد خادم ولا حساب ولا تسجيل دخول.'), findsOneWidget);
+    await shot('17_privacy');
+    back();
+    await settle();
+    await tester.scrollUntilVisible(
+      find.text('تجربة المنبه الآن'),
+      -200,
+      scrollable: find.byType(Scrollable).hitTestable().first,
+    );
     await tester.tap(find.text('تجربة المنبه الآن'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));

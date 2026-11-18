@@ -46,6 +46,9 @@ struct AlarmWidgetBundle: WidgetBundle {
 SWIFT
 echo "✓ كتبت $EXT/AlarmWidgetBundle.swift"
 
+echo "• إضافة ملف الخصوصية لمشروع Xcode..."
+python3 tool/add_privacy_manifest.py
+
 echo "• ترتيب مراحل البناء..."
 python3 tool/fix_build_phases.py ios/Runner.xcodeproj/project.pbxproj
 

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'glass.dart';
 import 'theme.dart';
@@ -347,7 +348,12 @@ class IosSwitch extends StatelessWidget {
   Widget build(BuildContext context) => CupertinoSwitch(
     value: value,
     activeTrackColor: IosColors.green,
-    onChanged: onChanged,
+    onChanged: onChanged == null
+        ? null
+        : (v) {
+            HapticFeedback.selectionClick();
+            onChanged!(v);
+          },
   );
 }
 
@@ -387,7 +393,10 @@ class IosSegmented<T extends Object> extends StatelessWidget {
           ),
       },
       onValueChanged: (v) {
-        if (v != null) onChanged(v);
+        if (v != null) {
+          HapticFeedback.selectionClick();
+          onChanged(v);
+        }
       },
     ),
   );
@@ -408,7 +417,10 @@ class IosCheck extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
     behavior: HitTestBehavior.opaque,
-    onTap: onTap,
+    onTap: () {
+      HapticFeedback.lightImpact();
+      onTap();
+    },
     child: Padding(
       padding: const EdgeInsets.all(2),
       child: AnimatedSwitcher(
